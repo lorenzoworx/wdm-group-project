@@ -9,7 +9,7 @@ Welcome to the frontend development team! This guide will help you get started w
 First, clone the repository to your local machine:
 
 ```bash
-git https://github.com/lorenzoworx/wdm-group-project.git
+git clone https://github.com/lorenzoworx/wdm-group-project.git
 cd wdm-group-project
 ```
 
