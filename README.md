@@ -8,32 +8,32 @@ Welcome to the frontend development team! This guide will help you get started w
 
 First, clone the repository to your local machine:
 
-bash
+```bash
 git https://github.com/lorenzoworx/wdm-group-project.git
 cd wdm-group-project
-
+```
 
 
 ### Switch to Frontend Branch
 
 Once you've cloned the repository, switch to the frontend branch:
 
-bash
+```bash
 git checkout frontend
-
+```
 
 ### Create Your Personal Branch
 
-Each team member should create their own branch from the frontend branch. Use the naming convention yourname_frontend:
+Each team member should create their own branch from the frontend branch. Use the naming convention `yourname_frontend`:
 
-bash
+```bash
 git checkout -b yourname_frontend
+```
 
-
-Replace yourname with your actual name. For example:
-- dhanya_frontend
-- sanjukktha_frontend
-- gowtham_frontend
+Replace `yourname` with your actual name. For example:
+- `dhanya_frontend`
+- `sanjukktha_frontend`
+- `gowtham_frontend`
 
 ## Daily Workflow
 
@@ -41,12 +41,12 @@ Replace yourname with your actual name. For example:
 
 Always pull the latest changes from the frontend branch before you start working:
 
-bash
+```bash
 git checkout frontend
 git pull origin frontend
 git checkout yourname_frontend
 git merge frontend
-
+```
 
 This ensures you're working with the most up-to-date code and helps prevent merge conflicts later.
 
@@ -54,24 +54,24 @@ This ensures you're working with the most up-to-date code and helps prevent merg
 
 Make your changes and commit them regularly with clear, descriptive messages:
 
-bash
+```bash
 git add .
 git commit -m "Description of changes made"
-
+```
 
 ### Pushing Your Work
 
 When you're ready to share your work, push your branch to the remote repository:
 
-bash
+```bash
 git push origin yourname_frontend
-
+```
 
 If this is your first push on this branch, you might need to set the upstream:
 
-bash
+```bash
 git push -u origin yourname_frontend
-
+```
 
 ### Merging to Frontend Branch
 
@@ -79,23 +79,23 @@ Once your work is complete and tested, create a pull request to merge your chang
 
 ## Best Practices
 
-- *Commit often*: Make small, logical commits with clear messages
-- *Pull regularly*: Update your branch with the latest frontend changes at least once a day
-- *Communicate*: Let the team know when you're working on a specific feature
-- *Test before pushing*: Always test your changes locally before pushing
-- *Review pull requests*: Help review your teammates' code to maintain quality
+- **Commit often**: Make small, logical commits with clear messages
+- **Pull regularly**: Update your branch with the latest frontend changes at least once a day
+- **Communicate**: Let the team know when you're working on a specific feature
+- **Test before pushing**: Always test your changes locally before pushing
+- **Review pull requests**: Help review your teammates' code to maintain quality
 
 ## Quick Reference
 
 | Action | Command |
 |--------|---------|
-| Clone repository | git clone <repository-url> |
-| Switch to frontend | git checkout frontend |
-| Create your branch | git checkout -b yourname_frontend |
-| Pull latest changes | git pull origin frontend |
-| Push your work | git push origin yourname_frontend |
-| Check current branch | git branch |
-| Check status | git status |
+| Clone repository | `git clone <repository-url>` |
+| Switch to frontend | `git checkout frontend` |
+| Create your branch | `git checkout -b yourname_frontend` |
+| Pull latest changes | `git pull origin frontend` |
+| Push your work | `git push origin yourname_frontend` |
+| Check current branch | `git branch` |
+| Check status | `git status` |
 
 ## Need Help?
 
