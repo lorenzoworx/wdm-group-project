@@ -1,0 +1,5 @@
+CREATE DATABASE wdmgp;
+
+CREATE TABLE student(
+  id SERIAL PRIMARY KEY,
+)
