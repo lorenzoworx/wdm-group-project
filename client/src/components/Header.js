@@ -6,7 +6,7 @@ const LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon
 const Header = () => {
   return (
     <div className="flex justify-between items-center px-8 py-3 bg-white shadow-sm border-b">
-      {/* Left - Logo and Name */}
+      
       <div className="flex items-center space-x-3">
         <img className="w-8 h-8" src={LOGO_URL} alt="Logo" />
         <span className="text-gray-800 font-semibold text-lg">Campus Resource Portal</span>

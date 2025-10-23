@@ -4,8 +4,10 @@ import Body from './components/Body';
 
 function App() {
   return (
-    
-      <Body/>
+    <div>
+      <Body />
+    </div>
+      
   
   );
 }
