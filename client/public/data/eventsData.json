@@ -1,0 +1,25 @@
+{
+  "events": [
+    {
+      "title": "AI Seminar — Deep Learning",
+      "date": "Sep 20",
+      "time": "3–5 PM",
+      "location": "ERB 130",
+      "tag": "CS"
+    },
+    {
+      "title": "Resume Review Workshop",
+      "date": "Sep 22",
+      "time": "1–2 PM",
+      "location": "Online",
+      "tag": "Career"
+    },
+    {
+      "title": "Data Viz Meetup",
+      "date": "Sep 25",
+      "time": "6–7 PM",
+      "location": "Library 204",
+      "tag": "Analytics"
+    }
+  ]
+}

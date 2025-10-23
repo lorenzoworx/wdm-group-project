@@ -1,14 +1,12 @@
-import React from 'react';
-import Body from './components/Body';
-//import './App.css';
+// App.js
+import React from "react";
+import Body from "./components/Body";  // ✅ make sure this path is correct
 
 function App() {
   return (
     <div>
-      <Body />
+      <Body />  {/* ✅ this enables routing */}
     </div>
-      
-  
   );
 }
 

@@ -168,7 +168,7 @@ const Login = () => {
     ) {
       localStorage.setItem('auth', 'true');
       alert('Login successful!');
-      navigate('/dashboard');
+      navigate('studentdashboard');
     } else {
       setErrorMessage('Invalid email or password.');
     }
