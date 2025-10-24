@@ -22,6 +22,7 @@ import EventsPage from '../Pages/EventsPage';
 import Announcements from '../Pages/Announcements';
 import Resources from '../Pages/Resources';
 import Profile from '../Pages/Profile';
+import Signup from '../Pages/Signup'; 
 
 // Error
 import Error from '../Pages/Error';
@@ -57,6 +58,7 @@ const Body = () => {
         { path: '/', element: <Login /> },
         { path: '/about', element: <About /> },
         { path: '/contact', element: <Contact /> },
+        { path: '/signup', element: <Signup /> },
       ],
     },
     {
