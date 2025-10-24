@@ -394,7 +394,6 @@ import { loginUser, registerUser } from '../utilis/auth';
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [userType, setUserType] = useState('student');
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -434,25 +433,63 @@ const Login = () => {
         return;
       }
 
-      if (isSignInForm) {
-        // Handle login
-        await loginUser(
-          email.current.value,
-          password.current.value,
-          userType
-        );
-      } else {
-        // Handle registration
-        await registerUser(
-          name.current.value,
-          email.current.value,
-          password.current.value,
-          userType
-        );
+      // Check for default admin
+      if (isSignInForm && email.current.value === 'admin@uta.edu' && password.current.value === 'Myproject@123') {
+        localStorage.setItem('userToken', 'admin-token');
+        localStorage.setItem('userType', 'admin');
+        localStorage.setItem('userData', JSON.stringify({
+          name: 'Admin',
+          email: 'admin@uta.edu',
+          userType: 'admin'
+        }));
+        navigate('/dashboard/admin');
+        return;
       }
 
-      // Navigate to appropriate dashboard
-      navigate(`/dashboard/${userType}`);
+      if (isSignInForm) {
+        // Handle login - check existing users
+        const users = JSON.parse(localStorage.getItem('localUsers') || '[]');
+        const user = users.find(u => u.email === email.current.value && u.password === password.current.value);
+        
+        if (user) {
+          localStorage.setItem('userToken', 'user-token');
+          localStorage.setItem('userType', user.userType);
+          localStorage.setItem('userData', JSON.stringify({
+            name: user.name,
+            email: user.email,
+            userType: user.userType
+          }));
+          navigate(`/dashboard/${user.userType}`);
+        } else {
+          setErrorMessage('Invalid email or password');
+        }
+      } else {
+        // Handle registration - all new users are students by default
+        const users = JSON.parse(localStorage.getItem('localUsers') || '[]');
+        const exists = users.find(u => u.email === email.current.value);
+        
+        if (exists) {
+          setErrorMessage('User already exists. Please login.');
+        } else {
+          const newUser = {
+            name: name.current.value,
+            email: email.current.value,
+            password: password.current.value,
+            userType: 'student'
+          };
+          users.push(newUser);
+          localStorage.setItem('localUsers', JSON.stringify(users));
+          
+          localStorage.setItem('userToken', 'user-token');
+          localStorage.setItem('userType', 'student');
+          localStorage.setItem('userData', JSON.stringify({
+            name: newUser.name,
+            email: newUser.email,
+            userType: 'student'
+          }));
+          navigate('/dashboard/student');
+        }
+      }
 
     } catch (error) {
       setErrorMessage(error.message);
@@ -471,24 +508,6 @@ const Login = () => {
           <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">
             {isSignInForm ? 'Log in' : 'Sign up'}
           </h1>
-
-          {/* User Type Selection */}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              {isSignInForm ? 'Login As:' : 'Register As:'}
-            </label>
-            <select
-              value={userType}
-              onChange={(e) => setUserType(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              disabled={isLoading}
-            >
-              <option value="student">Student</option>
-              <option value="instructor">Instructor</option>
-              <option value="admin">Admin</option>
-              <option value="qa">QA Officer</option>
-            </select>
-          </div>
 
           {!isSignInForm && (
             <div className="mb-4">

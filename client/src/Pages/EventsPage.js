@@ -18,9 +18,13 @@ const EventsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newEvent, setNewEvent] = useState(initialNewEvent);
+  const [userType, setUserType] = useState('');
 
   useEffect(() => {
     loadEvents();
+    // Get user type from localStorage
+    const currentUserType = localStorage.getItem('userType') || 'student';
+    setUserType(currentUserType);
   }, []);
 
   const loadEvents = () => {
@@ -69,6 +73,13 @@ const EventsPage = () => {
     }
   };
 
+  const handleUnregister = (eventId) => {
+    const newStatus = { ...registrationStatus };
+    delete newStatus[eventId];
+    setRegistrationStatus(newStatus);
+    localStorage.setItem('eventRegistrations', JSON.stringify(newStatus));
+  };
+
   const confirmRegistration = () => {
     if (selectedEvent) {
       const newStatus = { ...registrationStatus, [selectedEvent.id]: true };
@@ -80,7 +91,14 @@ const EventsPage = () => {
   };
 
   const filteredEvents = data.events.filter(event => {
-    const matchesFilter = filter === 'all' || event.tag.toLowerCase() === filter;
+    let matchesFilter = true;
+    
+    if (filter === 'registered') {
+      matchesFilter = registrationStatus[event.id];
+    } else if (filter !== 'all') {
+      matchesFilter = event.tag.toLowerCase() === filter;
+    }
+    
     const matchesSearch = searchQuery === '' || 
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -111,18 +129,20 @@ const EventsPage = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Create Event
-          </button>
+          {(userType === 'admin' || userType === 'instructor') && (
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Event
+            </button>
+          )}
         </div>
 
         {/* Filter tabs */}
         <div className="mb-6">
           <div className="flex space-x-8">
-            {['All', 'CS', 'Career', 'Analytics'].map((tab) => (
+            {['All', 'Registered', 'CS', 'Career', 'Analytics'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab.toLowerCase())}
@@ -169,16 +189,25 @@ const EventsPage = () => {
                 <p className="mt-2 text-gray-600 text-sm">{event.description}</p>
               )}
               <div className="mt-4 flex items-center justify-between">
-                <button
-                  onClick={() => handleRegister(event.id)}
-                  className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                    registrationStatus[event.id]
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'text-blue-600 hover:text-blue-700'
-                  }`}
-                >
-                  {registrationStatus[event.id] ? 'Registered' : 'Register'}
-                </button>
+                {userType === 'student' && (
+                  <div className="flex gap-2">
+                    {registrationStatus[event.id] ? (
+                      <button
+                        onClick={() => handleUnregister(event.id)}
+                        className="px-4 py-1.5 rounded text-sm font-medium bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                      >
+                        Unregister
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRegister(event.id)}
+                        className="px-4 py-1.5 rounded text-sm font-medium text-blue-600 hover:text-blue-700"
+                      >
+                        Register
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button className="text-sm text-gray-600 hover:text-gray-800">
                   Add to calendar
                 </button>

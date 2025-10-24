@@ -19,6 +19,10 @@ import AdminDashboard from '../Pages/AdminDashboard';
 import QAOfficePage from '../Pages/QAOfficePage';
 import StudentHomepage from '../Pages/StudentHomepage';
 import EventsPage from '../Pages/EventsPage';
+import ClassesPage from '../Pages/ClassesPage';
+import ExamsPage from '../Pages/ExamsPage';
+import UsersPage from '../Pages/UsersPage';
+import ProfilePage from '../Pages/ProfilePage';
 import Announcements from '../Pages/Announcements';
 import Resources from '../Pages/Resources';
 import Profile from '../Pages/Profile';
@@ -67,9 +71,12 @@ const Body = () => {
       children: [
         { path: '/dashboard', element: <DashboardHome /> },
         { path: '/dashboard/events', element: <EventsPage /> },
+        { path: '/dashboard/classes', element: <ClassesPage /> },
+        { path: '/dashboard/exams', element: <ExamsPage /> },
+        { path: '/dashboard/users', element: <UsersPage /> },
+        { path: '/dashboard/profile', element: <ProfilePage /> },
         { path: '/dashboard/announcements', element: <Announcements /> },
         { path: '/dashboard/resources', element: <Resources /> },
-        { path: '/dashboard/profile', element: <Profile /> },
         { path: '/dashboard/student', element: <StudentDashboard /> },
         { path: '/dashboard/instructor', element: <InstructorDashboard /> },
         { path: '/dashboard/admin', element: <AdminDashboard /> },
