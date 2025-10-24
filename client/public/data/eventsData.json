@@ -1,0 +1,34 @@
+{
+  "events": [
+    {
+      "id": 1,
+      "title": "AI Seminar — Deep Learning",
+      "date": "Sep 20",
+      "time": "3-5 PM",
+      "location": "ERB 130",
+      "tag": "CS",
+      "description": "Learn about the latest advancements in deep learning and AI.",
+      "isRegistered": false
+    },
+    {
+      "id": 2,
+      "title": "Resume Review Workshop",
+      "date": "Sep 22",
+      "time": "1-2 PM",
+      "location": "Online",
+      "tag": "Career",
+      "description": "Get your resume reviewed by industry professionals.",
+      "isRegistered": false
+    },
+    {
+      "id": 3,
+      "title": "Data Viz Meetup",
+      "date": "Sep 25",
+      "time": "6-7 PM",
+      "location": "Library 204",
+      "tag": "Analytics",
+      "description": "Join us for an evening of data visualization techniques and networking.",
+      "isRegistered": false
+    }
+  ]
+}
