@@ -1,0 +1,11 @@
+---
+deployment:
+  tasks:
+    # where the public site actually lives on uta.cloud
+    - export DEPLOYPATH=/home/bxp7143/public_html/
+
+    # wipe old files so we don't leave stale bundles behind
+    - /bin/rm -rf $DEPLOYPATH/*
+
+    # copy the built React app (client/build) into the live folder
+    - /bin/cp -r client/build/* $DEPLOYPATH
