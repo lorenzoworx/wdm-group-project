@@ -33,7 +33,7 @@
 
 // // //   return (
 // // //     <div className="flex justify-center items-center min-h-[80vh] bg-gray-50">
-           
+
 // // //       <div className="flex justify-center items-center flex-grow px-4">
 // // //         <form
 // // //           onSubmit={(e) => e.preventDefault()}
@@ -106,9 +106,9 @@
 // // //           </p>
 // // //         </form>
 // // //       </div>
-      
+
 // // //     </div>
-      
+
 // // //   );
 // // // };
 

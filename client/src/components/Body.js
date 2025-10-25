@@ -25,8 +25,10 @@ import UsersPage from '../Pages/UsersPage';
 import ProfilePage from '../Pages/ProfilePage';
 import Announcements from '../Pages/Announcements';
 import Resources from '../Pages/Resources';
-import Profile from '../Pages/Profile';
-import Signup from '../Pages/Signup'; 
+import Reports from '../Pages/Reports';
+import Performance from '../Pages/Performance';
+import Reviews from '../Pages/Reviews';
+import Signup from '../Pages/Signup';
 
 // Error
 import Error from '../Pages/Error';
@@ -74,6 +76,9 @@ const Body = () => {
         { path: '/dashboard/classes', element: <ClassesPage /> },
         { path: '/dashboard/exams', element: <ExamsPage /> },
         { path: '/dashboard/users', element: <UsersPage /> },
+        { path: '/dashboard/reports', element: <Reports /> },
+        { path: '/dashboard/performance', element: <Performance /> },
+        { path: '/dashboard/reviews', element: <Reviews /> },
         { path: '/dashboard/profile', element: <ProfilePage /> },
         { path: '/dashboard/announcements', element: <Announcements /> },
         { path: '/dashboard/resources', element: <Resources /> },

@@ -19,6 +19,9 @@ const ClassesPage = () => {
   const [newClass, setNewClass] = useState(initialNewClass);
   const [enrollmentStatus, setEnrollmentStatus] = useState({});
   const [userType, setUserType] = useState('');
+  // Editing state for classes
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingClassId, setEditingClassId] = useState(null);
 
   useEffect(() => {
     loadClasses();
@@ -75,8 +78,37 @@ const ClassesPage = () => {
 
   if (!data) return <p className="text-center mt-10">Loading...</p>;
 
-  const handleCreateClass = (e) => {
+  // Save handler supports both creating a new class and editing an existing one
+  const handleSaveClass = (e) => {
     e.preventDefault();
+
+    if (isEditing && editingClassId != null) {
+      const updatedClasses = data.classes.map((cls) => {
+        if (cls.id === editingClassId) {
+          return {
+            ...cls,
+            ...newClass,
+            id: editingClassId,
+            // keep currentStudents/isEnrolled if present
+            currentStudents: cls.currentStudents || 0,
+            isEnrolled: cls.isEnrolled || false
+          };
+        }
+        return cls;
+      });
+
+      const updatedData = { classes: updatedClasses };
+      setData(updatedData);
+      localStorage.setItem('classes', JSON.stringify(updatedData));
+      // reset edit state
+      setIsEditing(false);
+      setEditingClassId(null);
+      setNewClass(initialNewClass);
+      setShowCreateModal(false);
+      return;
+    }
+
+    // create new class
     const newId = Math.max(0, ...data.classes.map(c => c.id)) + 1;
     const classToAdd = {
       ...newClass,
@@ -127,6 +159,32 @@ const ClassesPage = () => {
     localStorage.setItem('classes', JSON.stringify(updatedData));
   };
 
+  const handleEditClick = (cls) => {
+    setIsEditing(true);
+    setEditingClassId(cls.id);
+    setNewClass({
+      title: cls.title || '',
+      courseCode: cls.courseCode || '',
+      description: cls.description || '',
+      instructor: cls.instructor || '',
+      schedule: cls.schedule || '',
+      location: cls.location || '',
+      maxStudents: cls.maxStudents || '',
+      prerequisites: cls.prerequisites || ''
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteClass = (classId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this class? This action cannot be undone.');
+    if (!confirmed) return;
+
+    const updated = data.classes.filter(c => c.id !== classId);
+    const updatedData = { classes: updated };
+    setData(updatedData);
+    localStorage.setItem('classes', JSON.stringify(updatedData));
+  };
+
   const filteredClasses = data.classes.filter(cls => {
     const matchesFilter = filter === 'all' || cls.courseCode.toLowerCase().includes(filter.toLowerCase());
     const matchesSearch = searchQuery === '' || 
@@ -138,7 +196,6 @@ const ClassesPage = () => {
 
   const canCreateClass = userType === 'admin' || userType === 'instructor';
   const canEnroll = userType === 'student';
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6">
@@ -168,7 +225,7 @@ const ClassesPage = () => {
           </div>
           {canCreateClass && (
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setShowCreateModal(true); setNewClass(initialNewClass); setIsEditing(false); setEditingClassId(null); }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Class
@@ -235,27 +292,27 @@ const ClassesPage = () => {
                   )}
                   {canCreateClass && (
                     <div className="flex gap-2">
-                      <button className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
+                      <button onClick={() => handleEditClick(cls)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
                         Edit
                       </button>
-                      <button className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
+                      <button onClick={() => handleDeleteClass(cls.id)} className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
                         Delete
                       </button>
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+                 </div>
+               </div>
+             </div>
+           ))}
+         </div>
+       </div>
 
-      {/* Create Class Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold mb-4">Create New Class</h3>
-            <form onSubmit={handleCreateClass}>
+       {/* Create Class Modal */}
+       {showCreateModal && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+           <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Class' : 'Create New Class'}</h3>
+            <form onSubmit={handleSaveClass}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -363,7 +420,7 @@ const ClassesPage = () => {
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => { setShowCreateModal(false); setIsEditing(false); setEditingClassId(null); setNewClass(initialNewClass); }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
                   Cancel
@@ -372,15 +429,15 @@ const ClassesPage = () => {
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Create Class
+                  {isEditing ? 'Save Changes' : 'Create Class'}
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+               </div>
+             </form>
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ };
 
-export default ClassesPage;
+ export default ClassesPage;

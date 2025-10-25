@@ -20,6 +20,8 @@ const ExamsPage = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [examResults, setExamResults] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingExamId, setEditingExamId] = useState(null);
 
   useEffect(() => {
     loadExams();
@@ -32,22 +34,89 @@ const ExamsPage = () => {
   };
 
   const loadExams = () => {
-    const savedExams = JSON.parse(localStorage.getItem('exams') || '[]');
-    setExams(savedExams);
-    
-    // Load exam results for students
-    if (userData?.userType === 'student') {
-      const results = JSON.parse(localStorage.getItem('examResults') || '{}');
-      setExamResults(results);
+    // Read raw value first so we can detect malformed JSON vs empty array.
+    const raw = localStorage.getItem('exams');
+    let savedExams = null;
+    try {
+      savedExams = raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      console.warn('Failed to parse exams from localStorage, will reload defaults', err);
+      savedExams = null;
     }
+
+    const fetchSampleExams = async () => {
+      // Prefer PUBLIC_URL so the app works on different base paths
+      const pathsToTry = [
+        (process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/data/examsData.json` : null),
+        '/data/examsData.json',
+        `${window.location.origin}/data/examsData.json`,
+      ].filter(Boolean);
+
+      for (const p of pathsToTry) {
+        try {
+          const res = await fetch(p, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const initialExams = data?.exams || [];
+          setExams(initialExams);
+          localStorage.setItem('exams', JSON.stringify(initialExams));
+          return;
+        } catch (err) {
+          // try next path
+          console.debug('fetch sample exams failed for', p, err);
+        }
+      }
+
+      console.warn('Could not load sample exams from public/data/examsData.json');
+      setExams([]);
+    };
+
+    if (!savedExams || !Array.isArray(savedExams) || savedExams.length === 0) {
+      // No exams found locally: load defaults from public folder
+      fetchSampleExams();
+    } else {
+      setExams(savedExams);
+    }
+
+    // Load exam results for students
+    const results = JSON.parse(localStorage.getItem('examResults') || '{}');
+    setExamResults(results);
   };
 
-  const handleCreateExam = (e) => {
+  // Save handler that supports both Create and Edit flows
+  const handleSaveExam = (e) => {
     e.preventDefault();
+
+    if (isEditing && editingExamId != null) {
+      // update existing exam
+      const updatedExams = exams.map((ex) => {
+        if (ex.id === editingExamId) {
+          return {
+            ...ex,
+            ...newExam,
+            id: editingExamId,
+            // preserve createdBy/createdAt if they existed
+            createdBy: ex.createdBy || userData?.email,
+            createdAt: ex.createdAt || new Date().toISOString()
+          };
+        }
+        return ex;
+      });
+
+      setExams(updatedExams);
+      localStorage.setItem('exams', JSON.stringify(updatedExams));
+      setIsEditing(false);
+      setEditingExamId(null);
+      setNewExam(initialNewExam);
+      setShowCreateModal(false);
+      return;
+    }
+
+    // create new exam
     const examToAdd = {
       ...newExam,
       id: Date.now(),
-      createdBy: userData.email,
+      createdBy: userData?.email || 'unknown',
       createdAt: new Date().toISOString()
     };
 
@@ -85,6 +154,30 @@ const ExamsPage = () => {
     }
   };
 
+  const handleEditClick = (exam) => {
+    // populate the create modal with existing exam data
+    setIsEditing(true);
+    setEditingExamId(exam.id);
+    setNewExam({
+      title: exam.title || "",
+      description: exam.description || "",
+      duration: exam.duration || "",
+      startTime: exam.startTime || "",
+      endTime: exam.endTime || "",
+      questions: exam.questions || []
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteExam = (examId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this exam? This action cannot be undone.');
+    if (!confirmed) return;
+
+    const updated = exams.filter(ex => ex.id !== examId);
+    setExams(updated);
+    localStorage.setItem('exams', JSON.stringify(updated));
+  };
+
   const calculateScore = (exam, userAnswers) => {
     let score = 0;
     exam.questions.forEach((question, index) => {
@@ -112,15 +205,8 @@ const ExamsPage = () => {
     }
   };
 
-  const filteredExams = exams.filter(exam => {
-    // For students, only show exams from their enrolled instructors
-    if (userData?.userType === 'student') {
-      // This would be filtered by enrolled instructors in a real system
-      return true;
-    }
-    // For instructors/admins, show all exams
-    return true;
-  });
+  // Currently no special filtering is applied; keep the array reference directly.
+  const filteredExams = exams;
 
   const canCreateExam = userData?.userType === 'admin' || userData?.userType === 'instructor' || userData?.userType === 'qa';
   const isStudent = userData?.userType === 'student';
@@ -140,7 +226,7 @@ const ExamsPage = () => {
         {canCreateExam && (
           <div className="mb-6">
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setShowCreateModal(true); setIsEditing(false); setNewExam(initialNewExam); setEditingExamId(null); }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Create Exam
@@ -210,10 +296,10 @@ const ExamsPage = () => {
                       </div>
                     ) : (
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
+                        <button onClick={() => handleEditClick(exam)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
                           Edit
                         </button>
-                        <button className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
+                        <button onClick={() => handleDeleteExam(exam.id)} className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
                           Delete
                         </button>
                       </div>
@@ -236,179 +322,179 @@ const ExamsPage = () => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold mb-4">Create New Exam</h3>
-            <form onSubmit={handleCreateExam}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Title
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newExam.title}
-                    onChange={(e) => setNewExam({ ...newExam, title: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter exam title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={newExam.description}
-                    onChange={(e) => setNewExam({ ...newExam, description: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows="3"
-                    placeholder="Enter exam description"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Duration (minutes)
-                    </label>
-                    <input
-                      required
-                      type="number"
-                      value={newExam.duration}
-                      onChange={(e) => setNewExam({ ...newExam, duration: e.target.value })}
-                      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="60"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time
-                    </label>
-                    <input
-                      required
-                      type="datetime-local"
-                      value={newExam.startTime}
-                      onChange={(e) => setNewExam({ ...newExam, startTime: e.target.value })}
-                      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Time
-                  </label>
-                  <input
-                    required
-                    type="datetime-local"
-                    value={newExam.endTime}
-                    onChange={(e) => setNewExam({ ...newExam, endTime: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create Exam
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Exam' : 'Create New Exam'}</h3>
+            <form onSubmit={handleSaveExam}>
+               <div className="space-y-4">
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                     Exam Title
+                   </label>
+                   <input
+                     required
+                     type="text"
+                     value={newExam.title}
+                     onChange={(e) => setNewExam({ ...newExam, title: e.target.value })}
+                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     placeholder="Enter exam title"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                     Description
+                   </label>
+                   <textarea
+                     value={newExam.description}
+                     onChange={(e) => setNewExam({ ...newExam, description: e.target.value })}
+                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     rows="3"
+                     placeholder="Enter exam description"
+                   />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                       Duration (minutes)
+                     </label>
+                     <input
+                       required
+                       type="number"
+                       value={newExam.duration}
+                       onChange={(e) => setNewExam({ ...newExam, duration: e.target.value })}
+                       className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="60"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                       Start Time
+                     </label>
+                     <input
+                       required
+                       type="datetime-local"
+                       value={newExam.startTime}
+                       onChange={(e) => setNewExam({ ...newExam, startTime: e.target.value })}
+                       className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     />
+                   </div>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                     End Time
+                   </label>
+                   <input
+                     required
+                     type="datetime-local"
+                     value={newExam.endTime}
+                     onChange={(e) => setNewExam({ ...newExam, endTime: e.target.value })}
+                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   />
+                 </div>
+               </div>
+               <div className="mt-6 flex justify-end gap-3">
+                 <button
+                   type="button"
+                   onClick={() => { setShowCreateModal(false); setIsEditing(false); setEditingExamId(null); setNewExam(initialNewExam); }}
+                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="submit"
+                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                 >
+                  {isEditing ? 'Save Changes' : 'Create Exam'}
+                 </button>
+               </div>
+             </form>
+           </div>
+         </div>
+       )}
 
-      {/* Take Exam Modal */}
-      {showExamModal && selectedExam && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">{selectedExam.title}</h3>
-              <button
-                onClick={() => setShowExamModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {selectedExam.questions.length > 0 ? (
-              <div>
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600">
-                    Question {currentQuestion + 1} of {selectedExam.questions.length}
-                  </p>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${((currentQuestion + 1) / selectedExam.questions.length) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <h4 className="text-lg font-medium mb-4">
-                    {selectedExam.questions[currentQuestion].question}
-                  </h4>
-                  <div className="space-y-2">
-                    {selectedExam.questions[currentQuestion].options.map((option, index) => (
-                      <label key={index} className="flex items-center">
-                        <input
-                          type="radio"
-                          name={`question_${currentQuestion}`}
-                          value={index}
-                          checked={answers[currentQuestion] === index}
-                          onChange={(e) => setAnswers({ ...answers, [currentQuestion]: parseInt(e.target.value) })}
-                          className="mr-3"
-                        />
-                        {option}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="flex justify-between">
-                  <button
-                    onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
-                    disabled={currentQuestion === 0}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg disabled:bg-gray-300"
-                  >
-                    Previous
-                  </button>
-                  
-                  {currentQuestion === selectedExam.questions.length - 1 ? (
-                    <button
-                      onClick={handleSubmitExam}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Submit Exam
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setCurrentQuestion(Math.min(selectedExam.questions.length - 1, currentQuestion + 1))}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Next
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No questions available for this exam.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+       {/* Take Exam Modal */}
+       {showExamModal && selectedExam && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+           <div className="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+             <div className="flex justify-between items-center mb-4">
+               <h3 className="text-xl font-semibold">{selectedExam.title}</h3>
+               <button
+                 onClick={() => setShowExamModal(false)}
+                 className="text-gray-500 hover:text-gray-700"
+               >
+                 ✕
+               </button>
+             </div>
 
-export default ExamsPage;
+             {selectedExam.questions.length > 0 ? (
+               <div>
+                 <div className="mb-4">
+                   <p className="text-sm text-gray-600">
+                     Question {currentQuestion + 1} of {selectedExam.questions.length}
+                   </p>
+                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                     <div
+                       className="bg-blue-600 h-2 rounded-full"
+                       style={{ width: `${((currentQuestion + 1) / selectedExam.questions.length) * 100}%` }}
+                     ></div>
+                   </div>
+                 </div>
+
+                 <div className="mb-6">
+                   <h4 className="text-lg font-medium mb-4">
+                     {selectedExam.questions[currentQuestion].question}
+                   </h4>
+                   <div className="space-y-2">
+                     {selectedExam.questions[currentQuestion].options.map((option, index) => (
+                       <label key={index} className="flex items-center">
+                         <input
+                           type="radio"
+                           name={`question_${currentQuestion}`}
+                           value={index}
+                           checked={answers[currentQuestion] === index}
+                           onChange={(e) => setAnswers({ ...answers, [currentQuestion]: parseInt(e.target.value) })}
+                           className="mr-3"
+                         />
+                         {option}
+                       </label>
+                     ))}
+                   </div>
+                 </div>
+
+                 <div className="flex justify-between">
+                   <button
+                     onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                     disabled={currentQuestion === 0}
+                     className="px-4 py-2 bg-gray-500 text-white rounded-lg disabled:bg-gray-300"
+                   >
+                     Previous
+                   </button>
+
+                   {currentQuestion === selectedExam.questions.length - 1 ? (
+                     <button
+                       onClick={handleSubmitExam}
+                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                     >
+                       Submit Exam
+                     </button>
+                   ) : (
+                     <button
+                       onClick={() => setCurrentQuestion(Math.min(selectedExam.questions.length - 1, currentQuestion + 1))}
+                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                     >
+                       Next
+                     </button>
+                   )}
+                 </div>
+               </div>
+             ) : (
+               <div className="text-center py-8">
+                 <p className="text-gray-500">No questions available for this exam.</p>
+               </div>
+             )}
+           </div>
+         </div>
+       )}
+     </div>
+   );
+ };
+
+ export default ExamsPage;
