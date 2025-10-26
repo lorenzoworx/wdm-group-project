@@ -29,6 +29,7 @@ import Reports from '../Pages/Reports';
 import Performance from '../Pages/Performance';
 import Reviews from '../Pages/Reviews';
 import Signup from '../Pages/Signup';
+import Grades from '../Pages/Grades';
 
 // Error
 import Error from '../Pages/Error';
@@ -49,7 +50,9 @@ const DashboardLayout = () => (
   <div className="min-h-screen bg-gray-50">
     <DashboardHeader />
     <main className="p-6">
-      <Outlet />
+      <div className="app-container">
+        <Outlet />
+      </div>
     </main>
   </div>
 );
@@ -82,6 +85,8 @@ const Body = () => {
         { path: '/dashboard/profile', element: <ProfilePage /> },
         { path: '/dashboard/announcements', element: <Announcements /> },
         { path: '/dashboard/resources', element: <Resources /> },
+        { path: '/grades', element: <Grades /> },
+        { path: '/dashboard/grades', element: <Grades /> },
         { path: '/dashboard/student', element: <StudentDashboard /> },
         { path: '/dashboard/instructor', element: <InstructorDashboard /> },
         { path: '/dashboard/admin', element: <AdminDashboard /> },

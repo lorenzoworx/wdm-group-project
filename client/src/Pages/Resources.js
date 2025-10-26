@@ -27,7 +27,6 @@ const Resources = () => {
   ]);
 
   const [filter, setFilter] = useState('All Types');
-
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -236,7 +235,9 @@ const Resources = () => {
   });
 
   const getActionButton = (action, resource) => {
-    const baseClasses = "text-sm font-medium px-2 py-1 rounded focus:outline-none";
+     // make buttons full width on mobile and auto on larger screens
+    // inline-flex + centered ensures consistent vertical alignment across anchors/buttons
+    const baseClasses = "inline-flex justify-center items-center text-sm font-medium px-3 py-2 rounded focus:outline-none w-full sm:w-auto text-center";
     const linkClasses = "text-blue-600 hover:text-blue-700 hover:bg-gray-50";
 
     // Render a real <a> for Open actions so browsers treat it as a genuine navigation
@@ -366,81 +367,93 @@ const Resources = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="max-w-5xl mx-auto p-6 w-full">
+         {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Resources</h1>
             <p className="text-gray-600">All files, links and guides</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search resources..."
-                className="w-64 pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <svg className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          {/* Controls: two-row layout on mobile to avoid crowding */}
+          <div className="w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+              <div className="relative w-full max-w-md min-w-0">
+                <input
+                  type="text"
+                  placeholder="Search resources..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <svg className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              <select
+                className="border rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              >
+                <option>All Types</option>
+                <option>PDF</option>
+                <option>Slides</option>
+                <option>Link</option>
+              </select>
             </div>
 
-            <select
-              className="border rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
-              <option>All Types</option>
-              <option>PDF</option>
-              <option>Slides</option>
-              <option>Link</option>
-            </select>
-
-            <select
-              className="border rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-            >
-              <option>All Departments</option>
-              <option>CS Dept</option>
-              <option>IT Dept</option>
-            </select>
+            <div className="mt-3 sm:mt-0 flex items-center gap-3">
+              <select
+                className="border rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                <option>All Departments</option>
+                <option>CS Dept</option>
+                <option>IT Dept</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* Upload helper (stores file in localStorage as base64) */}
-        <div className="mb-4">
-          <label className="text-sm font-medium text-gray-700 mr-2">Upload resource (for testing):</label>
-          <input type="file" onChange={handleFileInput} className="ml-2" />
-        </div>
+         {/* Upload helper (stores file in localStorage as base64) */}
+         <div className="mb-4">
+           <label className="text-sm font-medium text-gray-700 mr-2">Upload resource (for testing):</label>
+           <input type="file" onChange={handleFileInput} className="ml-2 mt-2 sm:mt-0" />
+         </div>
 
-        {/* Resources List */}
-        <div className="space-y-4">
-          {filteredResources.map((resource, index) => (
-            <div key={index} className="bg-white shadow rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {getTypeIcon(resource.type)}
-                  <div>
-                    <h3 className="font-medium text-gray-900">{resource.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {resource.department} • {resource.access}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  {resource.actions.map(action => getActionButton(action, resource))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+         {/* Resources List */}
+         <div className="space-y-4">
+           {filteredResources.map((resource, index) => (
+             <div key={index} className="bg-white shadow rounded-lg p-4">
+               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                 <div className="flex items-center space-x-3 min-w-0">
+                   {getTypeIcon(resource.type)}
+                   <div className="min-w-0">
+                     <h3 className="font-medium text-gray-900 break-words">{resource.name}</h3>
+                     <p className="text-sm text-gray-500 break-words">
+                       {resource.department} • {resource.access}
+                     </p>
+                   </div>
+                 </div>
 
-export default Resources;
+                 <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                   {resource.actions.map(action => (
+                     // On mobile we want buttons side-by-side and evenly spaced; use flex-1 so they share row
+                     <div key={action} className="flex-1 sm:flex-none min-w-0">
+                       {getActionButton(action, resource)}
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             </div>
+           ))}
+         </div>
+       </div>
+     </div>
+   );
+ };
+
+ export default Resources;
+

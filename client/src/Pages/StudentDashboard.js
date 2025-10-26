@@ -52,7 +52,7 @@
 
 
 import React, { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 
 const StudentDashboard = () => {
   const [data, setData] = useState(null);
@@ -112,7 +112,7 @@ const StudentDashboard = () => {
               <div className="bg-white p-4 rounded-xl shadow">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold">Grades</h3>
-                  <button className="text-sm text-blue-600 hover:underline">View all</button>
+                  <Link to="/grades" className="text-sm text-blue-600 hover:underline">View all</Link>
                 </div>
                 <div className="space-y-3">
                   {data.grades.map((g, idx) => (
@@ -167,7 +167,7 @@ const StudentDashboard = () => {
             <div className="bg-white p-4 rounded-xl shadow">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-semibold">Latest Announcements</h3>
-                <button className="text-sm text-blue-600 hover:underline">View all</button>
+                <Link to="/dashboard/announcements" className="text-sm text-blue-600 hover:underline">View all</Link>
               </div>
               <ul className="space-y-3">
                 {data.announcements.map((a, i) => (

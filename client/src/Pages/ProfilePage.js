@@ -16,6 +16,25 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadUserData();
+
+    // One-time diagnostic to detect elements causing horizontal overflow in mobile
+    try {
+      setTimeout(() => {
+        const docWidth = document.documentElement.clientWidth;
+        const nodes = Array.from(document.querySelectorAll('body *'));
+        const offenders = nodes.filter((n) => n instanceof HTMLElement && n.offsetWidth > docWidth);
+        if (offenders.length > 0) {
+          console.warn('DOM overflow diagnostics: found elements wider than viewport (' + docWidth + 'px):');
+          offenders.slice(0, 20).forEach((el) => {
+            console.warn(el, 'offsetWidth=', el.offsetWidth, '-> selector:', getElementSelector(el));
+          });
+        } else {
+          console.info('DOM overflow diagnostics: no oversized elements found (viewport ' + docWidth + 'px)');
+        }
+      }, 200); // delay a bit for layout to settle
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const loadUserData = () => {
@@ -76,13 +95,31 @@ const ProfilePage = () => {
     setIsEditing(false);
   };
 
+  // Helper used by diagnostics to produce a short selector path
+  function getElementSelector(el) {
+    if (!el) return '';
+    const parts = [];
+    let node = el;
+    while (node && node.tagName && parts.length < 5) {
+      let part = node.tagName.toLowerCase();
+      if (node.id) part += `#${node.id}`;
+      else if (node.className && typeof node.className === 'string') {
+        const cn = node.className.split(' ').filter(Boolean)[0];
+        if (cn) part += `.${cn}`;
+      }
+      parts.push(part);
+      node = node.parentElement;
+    }
+    return parts.reverse().join(' > ');
+  }
+
   if (!userData) {
     return <p className="text-center mt-10">Loading...</p>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6 w-full">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Profile</h1>
@@ -92,7 +129,8 @@ const ProfilePage = () => {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           {/* Profile Header */}
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-8">
-            <div className="flex items-center">
+            {/* Stack on small screens; align horizontally on md+ */}
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
               <div className="flex-shrink-0">
                 <div className="h-20 w-20 rounded-full bg-white flex items-center justify-center">
                   <span className="text-2xl font-bold text-blue-600">
@@ -100,32 +138,34 @@ const ProfilePage = () => {
                   </span>
                 </div>
               </div>
-              <div className="ml-6 text-white">
-                <h2 className="text-2xl font-bold">{userData.name}</h2>
-                <p className="text-blue-100">{userData.email}</p>
+
+              <div className="mt-2 md:mt-0 md:ml-6 text-white min-w-0">
+                <h2 className="text-2xl font-bold truncate">{userData.name}</h2>
+                <p className="text-blue-100 truncate">{userData.email}</p>
                 <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-white bg-opacity-20 mt-2">
                   {userData.userType.charAt(0).toUpperCase() + userData.userType.slice(1)}
                 </span>
               </div>
-              <div className="ml-auto">
+
+              <div className="mt-4 md:mt-0 md:ml-auto w-full md:w-auto">
                 {!isEditing ? (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition"
+                    className="w-full md:w-auto bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition"
                   >
                     Edit Profile
                   </button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={handleSave}
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition"
+                      className="w-full sm:w-auto bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition"
                     >
                       Save
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition"
+                      className="w-full sm:w-auto bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition"
                     >
                       Cancel
                     </button>

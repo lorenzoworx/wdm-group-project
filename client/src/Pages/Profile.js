@@ -46,16 +46,17 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6 w-full">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-800">Profile Settings</h1>
           <p className="text-gray-600 mt-1">Manage your account settings and preferences</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Use md breakpoint so sidebar stacks on small screens */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Profile info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="md:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -146,9 +147,9 @@ const Profile = () => {
                     <p className="text-sm text-gray-500">Receive updates about events and announcements</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
+                    <input
                       type="checkbox" 
-                      className="sr-only peer" 
+                      className="sr-only peer"
                       checked={profile.emailNotifications}
                       onChange={() => handleToggleChange('emailNotifications')}
                     />
@@ -161,7 +162,7 @@ const Profile = () => {
                     <p className="text-sm text-gray-500">Get text messages for important updates</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
+                    <input
                       type="checkbox" 
                       className="sr-only peer"
                       checked={profile.smsNotifications}

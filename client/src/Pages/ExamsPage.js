@@ -213,7 +213,7 @@ const ExamsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="page-container p-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Exams</h1>
@@ -242,10 +242,10 @@ const ExamsPage = () => {
             
             return (
               <div key={exam.id} className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between responsive-row">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-medium">{exam.title}</h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2">
+                      <h3 className="text-lg font-medium break-words">{exam.title}</h3>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         status.status === 'active' ? 'bg-green-100 text-green-700' :
                         status.status === 'upcoming' ? 'bg-yellow-100 text-yellow-700' :
@@ -254,8 +254,8 @@ const ExamsPage = () => {
                         {status.status}
                       </span>
                     </div>
-                    <p className="text-gray-600 mb-3">{exam.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <p className="text-gray-600 mb-3 break-words">{exam.description}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-500">
                       <span>Duration: {exam.duration} minutes</span>
                       <span>Start: {new Date(exam.startTime).toLocaleString()}</span>
                       <span>End: {new Date(exam.endTime).toLocaleString()}</span>
@@ -267,41 +267,31 @@ const ExamsPage = () => {
                     </div>
                     <p className="text-sm text-gray-500 mt-2">{status.message}</p>
                   </div>
-                  <div className="ml-4">
+                  <div className="mt-3 sm:mt-0">
                     {isStudent ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         {status.status === 'active' && !result && (
                           <button
                             onClick={() => handleStartExam(exam)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full sm:w-auto"
                           >
                             Take Exam
                           </button>
                         )}
                         {result && (
-                          <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg">
-                            Completed
-                          </span>
+                          <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg inline-block">Completed</span>
                         )}
                         {status.status === 'upcoming' && (
-                          <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg">
-                            Not Started
-                          </span>
+                          <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg inline-block">Not Started</span>
                         )}
                         {status.status === 'finished' && !result && (
-                          <span className="px-4 py-2 bg-red-100 text-red-600 rounded-lg">
-                            Expired
-                          </span>
+                          <span className="px-4 py-2 bg-red-100 text-red-600 rounded-lg inline-block">Expired</span>
                         )}
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEditClick(exam)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
-                          Edit
-                        </button>
-                        <button onClick={() => handleDeleteExam(exam.id)} className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
-                          Delete
-                        </button>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button onClick={() => handleEditClick(exam)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">Edit</button>
+                        <button onClick={() => handleDeleteExam(exam.id)} className="px-3 py-1 text-sm text-red-600 hover:text-red-700">Delete</button>
                       </div>
                     )}
                   </div>
@@ -319,9 +309,9 @@ const ExamsPage = () => {
       </div>
 
       {/* Create Exam Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+       {showCreateModal && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+           <div className="bg-white rounded-xl p-6 max-w-2xl w-full modal-scrollable">
             <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Exam' : 'Create New Exam'}</h3>
             <form onSubmit={handleSaveExam}>
                <div className="space-y-4">

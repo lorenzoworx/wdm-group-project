@@ -122,7 +122,7 @@ const UsersPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto p-6 w-full">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Users Management</h1>
@@ -130,8 +130,8 @@ const UsersPage = () => {
         </div>
 
         {/* Search and Create */}
-        <div className="mb-6 flex justify-between items-center">
-          <div className="relative w-96">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div className="relative w-full max-w-md">
             <input
               type="search"
               placeholder="Search users..."
@@ -145,7 +145,7 @@ const UsersPage = () => {
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
           >
             Add User
           </button>
@@ -153,7 +153,7 @@ const UsersPage = () => {
 
         {/* Filter tabs */}
         <div className="mb-6">
-          <div className="flex space-x-8">
+          <div className="flex space-x-8 overflow-x-auto pb-2 px-1">
             {['All', 'Admin', 'Instructor', 'QA', 'Student'].map((tab) => (
               <button
                 key={tab}
@@ -170,26 +170,45 @@ const UsersPage = () => {
           </div>
         </div>
 
-        {/* Users table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Mobile: stacked cards */}
+        <div className="md:hidden space-y-4">
+          {filteredUsers.map(user => (
+            <div key={user.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-gray-700">{user.name ? user.name.charAt(0).toUpperCase() : '?'}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{user.name}</div>
+                    <div className="text-sm text-gray-500 truncate">{user.email}</div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.userType)}`}>{user.userType}</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>{user.status}</span>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                <button onClick={() => setEditingUser(user)} className="w-full px-3 py-2 text-sm text-blue-600 border border-blue-100 rounded">Edit</button>
+                {user.id !== 'admin' && (
+                  <button onClick={() => handleDeleteUser(user.id)} className="w-full px-3 py-2 text-sm text-red-600 border border-red-100 rounded">Delete</button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop/table for md+ screens */}
+        <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -199,9 +218,7 @@ const UsersPage = () => {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-700">
-                            {user.name.charAt(0).toUpperCase()}
-                          </span>
+                          <span className="text-sm font-medium text-gray-700">{user.name ? user.name.charAt(0).toUpperCase() : '?'}</span>
                         </div>
                       </div>
                       <div className="ml-4">
@@ -211,34 +228,14 @@ const UsersPage = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.userType)}`}>
-                      {user.userType.charAt(0).toUpperCase() + user.userType.slice(1)}
-                    </span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.userType)}`}>{user.userType.charAt(0).toUpperCase() + user.userType.slice(1)}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.department || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
-                      {user.status}
-                    </span>
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.department || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap"><span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>{user.status}</span></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        Edit
-                      </button>
-                      {user.id !== 'admin' && (
-                        <button
-                          onClick={() => handleDeleteUser(user.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <button onClick={() => setEditingUser(user)} className="text-blue-600 hover:text-blue-900">Edit</button>
+                      {user.id !== 'admin' && (<button onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-900">Delete</button>)}
                     </div>
                   </td>
                 </tr>
@@ -247,12 +244,12 @@ const UsersPage = () => {
           </table>
         </div>
 
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No users found matching your criteria.
-          </div>
-        )}
-      </div>
+         {filteredUsers.length === 0 && (
+           <div className="text-center py-8 text-gray-500">
+             No users found matching your criteria.
+           </div>
+         )}
+       </div>
 
       {/* Create User Modal */}
       {showCreateModal && (
@@ -351,7 +348,7 @@ const UsersPage = () => {
       {/* Edit User Modal */}
       {editingUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full modal-scrollable">
             <h3 className="text-xl font-semibold mb-4">Edit User</h3>
             <form onSubmit={(e) => {
               e.preventDefault();

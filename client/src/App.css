@@ -1,0 +1,93 @@
+/* Add lightweight responsive helpers and reset styles used across pages */
+:root{
+  /* You can keep these vars if you want, but page-max-width won't be used anymore */
+  --page-max-width: 1100px;
+  --gutter: 0px; /* no side padding */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: #f8fafc; /* Tailwind gray-50 */
+  color: #0f172a;      /* Tailwind gray-900 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Page container: now full-bleed, no side margins, no side padding */
+.page-container{
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow-x: hidden;
+}
+
+/* Responsive row helper used in components to stack on mobile */
+.responsive-row{
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+@media (max-width: 640px){
+  .responsive-row{
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Make images and iframes scale down */
+img,
+iframe,
+embed,
+object,
+video{
+  max-width: 100%;
+  height: auto;
+}
+
+/* Tables: allow horizontal scroll on small screens */
+.table-responsive{
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Utility to prevent long words overflowing */
+.break-words{
+  word-break: break-word;
+}
+
+/* Modal tweaks */
+.modal-scrollable{
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* small visual adjustments for cards on mobile */
+.card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+
+/* Ensure forms and inputs don't grow past container */
+input,
+textarea,
+select,
+button{
+  max-width: 100%;
+}

@@ -85,7 +85,7 @@ const UserManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="page-container p-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">User Management</h1>
@@ -93,8 +93,8 @@ const UserManagementPage = () => {
         </div>
 
         {/* Search and Create */}
-        <div className="mb-6 flex justify-between items-center">
-          <div className="relative w-96">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+          <div className="relative w-full max-w-md">
             <input
               type="search"
               placeholder="Search users..."
@@ -218,7 +218,7 @@ const UserManagementPage = () => {
       {/* Create User Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full modal-scrollable">
             <h3 className="text-xl font-semibold mb-4">Add New User</h3>
             <form onSubmit={handleCreateUser}>
               <div className="space-y-4">

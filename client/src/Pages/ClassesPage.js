@@ -198,7 +198,7 @@ const ClassesPage = () => {
   const canEnroll = userType === 'student';
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="page-container p-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">Classes</h1>
@@ -210,8 +210,8 @@ const ClassesPage = () => {
         </div>
 
         {/* Search and Create */}
-        <div className="mb-6 flex justify-between items-center">
-          <div className="relative w-96">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3">
+          <div className="relative w-full max-w-md">
             <input
               type="search"
               placeholder="Search classes..."
@@ -224,12 +224,14 @@ const ClassesPage = () => {
             </svg>
           </div>
           {canCreateClass && (
-            <button 
-              onClick={() => { setShowCreateModal(true); setNewClass(initialNewClass); setIsEditing(false); setEditingClassId(null); }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Create Class
-            </button>
+            <div className="w-full sm:w-auto">
+              <button
+                onClick={() => { setShowCreateModal(true); setNewClass(initialNewClass); setIsEditing(false); setEditingClassId(null); }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
+              >
+                Create Class
+              </button>
+            </div>
           )}
         </div>
 
@@ -256,28 +258,24 @@ const ClassesPage = () => {
         <div className="grid grid-cols-1 gap-4">
           {filteredClasses.map((cls) => (
             <div key={cls.id} className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between responsive-row">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
                       {cls.courseCode}
                     </span>
-                    <span className="text-sm text-gray-600">
-                      {cls.schedule}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {cls.location}
-                    </span>
+                    <span className="text-sm text-gray-600">{cls.schedule}</span>
+                    <span className="text-sm text-gray-600">{cls.location}</span>
                   </div>
                   <h3 className="text-lg font-medium mb-2">{cls.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{cls.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <p className="text-gray-600 text-sm mb-3 break-words">{cls.description}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-500">
                     <span>Instructor: {cls.instructor}</span>
                     <span>Students: {cls.currentStudents}/{cls.maxStudents}</span>
                     <span>Prerequisites: {cls.prerequisites}</span>
                   </div>
                 </div>
-                <div className="ml-4">
+                <div className="mt-3 sm:mt-0">
                   {canEnroll && (
                     <button
                       onClick={() => enrollmentStatus[cls.id] ? handleUnenroll(cls.id) : handleEnroll(cls.id)}
@@ -291,7 +289,7 @@ const ClassesPage = () => {
                     </button>
                   )}
                   {canCreateClass && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-2 sm:mt-0">
                       <button onClick={() => handleEditClick(cls)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
                         Edit
                       </button>
@@ -300,144 +298,144 @@ const ClassesPage = () => {
                       </button>
                     </div>
                   )}
-                 </div>
-               </div>
-             </div>
-           ))}
-         </div>
-       </div>
-
-       {/* Create Class Modal */}
-       {showCreateModal && (
-         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-           <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Class' : 'Create New Class'}</h3>
-            <form onSubmit={handleSaveClass}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Class Title
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newClass.title}
-                    onChange={(e) => setNewClass({ ...newClass, title: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter class title"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Course Code
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newClass.courseCode}
-                    onChange={(e) => setNewClass({ ...newClass, courseCode: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., CS5335"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Instructor
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newClass.instructor}
-                    onChange={(e) => setNewClass({ ...newClass, instructor: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter instructor name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Schedule
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newClass.schedule}
-                    onChange={(e) => setNewClass({ ...newClass, schedule: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., Mon, Wed, Fri 2:15 PM"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newClass.location}
-                    onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter location"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Students
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    value={newClass.maxStudents}
-                    onChange={(e) => setNewClass({ ...newClass, maxStudents: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="30"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prerequisites
-                  </label>
-                  <input
-                    type="text"
-                    value={newClass.prerequisites}
-                    onChange={(e) => setNewClass({ ...newClass, prerequisites: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter prerequisites"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={newClass.description}
-                    onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows="3"
-                    placeholder="Enter class description"
-                  />
                 </div>
               </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setShowCreateModal(false); setIsEditing(false); setEditingClassId(null); setNewClass(initialNewClass); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  {isEditing ? 'Save Changes' : 'Create Class'}
-                </button>
-               </div>
-             </form>
-           </div>
-         </div>
-       )}
-     </div>
-   );
- };
+            </div>
+          ))}
+        </div>
+      </div>
 
- export default ClassesPage;
+      {/* Create Class Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full modal-scrollable">
+           <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Class' : 'Create New Class'}</h3>
+           <form onSubmit={handleSaveClass}>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Class Title
+                 </label>
+                 <input
+                   required
+                   type="text"
+                   value={newClass.title}
+                   onChange={(e) => setNewClass({ ...newClass, title: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Enter class title"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Course Code
+                 </label>
+                 <input
+                   required
+                   type="text"
+                   value={newClass.courseCode}
+                   onChange={(e) => setNewClass({ ...newClass, courseCode: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="e.g., CS5335"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Instructor
+                 </label>
+                 <input
+                   required
+                   type="text"
+                   value={newClass.instructor}
+                   onChange={(e) => setNewClass({ ...newClass, instructor: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Enter instructor name"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Schedule
+                 </label>
+                 <input
+                   required
+                   type="text"
+                   value={newClass.schedule}
+                   onChange={(e) => setNewClass({ ...newClass, schedule: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="e.g., Mon, Wed, Fri 2:15 PM"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Location
+                 </label>
+                 <input
+                   required
+                   type="text"
+                   value={newClass.location}
+                   onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Enter location"
+                 />
+               </div>
+               <div>
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Max Students
+                 </label>
+                 <input
+                   required
+                   type="number"
+                   value={newClass.maxStudents}
+                   onChange={(e) => setNewClass({ ...newClass, maxStudents: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="30"
+                 />
+               </div>
+               <div className="md:col-span-2">
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Prerequisites
+                 </label>
+                 <input
+                   type="text"
+                   value={newClass.prerequisites}
+                   onChange={(e) => setNewClass({ ...newClass, prerequisites: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   placeholder="Enter prerequisites"
+                 />
+               </div>
+               <div className="md:col-span-2">
+                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                   Description
+                 </label>
+                 <textarea
+                   value={newClass.description}
+                   onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
+                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   rows="3"
+                   placeholder="Enter class description"
+                 />
+               </div>
+             </div>
+             <div className="mt-6 flex justify-end gap-3">
+               <button
+                 type="button"
+                 onClick={() => { setShowCreateModal(false); setIsEditing(false); setEditingClassId(null); setNewClass(initialNewClass); }}
+                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
+               >
+                 Cancel
+               </button>
+               <button
+                 type="submit"
+                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+               >
+                 {isEditing ? 'Save Changes' : 'Create Class'}
+               </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ClassesPage;

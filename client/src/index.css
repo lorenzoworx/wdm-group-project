@@ -1,3 +1,59 @@
+/* Pandey, Bhumika - 1002337142
+   Okolo, Oshoke  - 1001251027
+   Vishlavath, Goutham - 1002331951
+   Pagidimarri, Dhanya Sharabha - 1002235518
+   Senthil Kumar, Sanjukktha - 1002239323
+
+   Project details:
+   - Primary font used in this project: 'Inter', sans-serif
+   - Primary color used in this project: #1E293B (slate-like dark blue for primary text, headings, and UI accents)
+   - Accent color: #38BDF8
+   - Background color: #FFFFFF
+*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent horizontal page overflow globally (helps on mobile when some elements overflow) */
+html, body { overflow-x: hidden; }
+#root { overflow-x: hidden; }
+
+/* App container for centered content */
+.app-container { max-width: 1100px; margin-left: auto; margin-right: auto; padding-left: 16px; padding-right: 16px; width: 100%; overflow-x: hidden; }
+
+/* Prevent header elements from causing horizontal overflow and allow wrapping */
+header .app-container { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+header .app-container > * { min-width: 0; }
+
+/* Ensure direct children of flex containers can shrink to avoid overflow on small screens */
+.flex > * { min-width: 0; }
+
+/* Limit search/input width in header so it doesn't force overflow */
+header .app-container input[type="text"] {
+  max-width: 220px;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  header .app-container input[type="text"] {
+    max-width: 100%;
+    flex-basis: 100%;
+  }
+  /* Ensure header buttons/nav collapse neatly */
+  header .app-container nav, header .app-container .md\:hidden {
+    width: 100%;
+  }
+}
+
+/* Responsive row helper used by StudentHomepage to stack content on small screens */
+.responsive-row { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+@media (min-width: 640px) {
+  .responsive-row { flex-direction: row; align-items: center; gap: 1rem; }
+}
+
+/* Reusable badge used for event types and announcement tags */
+.badge { display: inline-block; padding: 0.125rem 0.5rem; font-size: 0.75rem; border-radius: 9999px; font-weight: 600; }
+
+/* Small utility to ensure elements that use break-words behave consistently */
+.break-words { overflow-wrap: break-word; }
