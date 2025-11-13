@@ -1,11 +1,28 @@
 ---
 deployment:
   tasks:
-    # where the public site actually lives on uta.cloud
-    - export DEPLOYPATH=/home/bxp7143/public_html/
+    - 'export REPO=/home/bxp7143/repositories/wdm-group-project'
+    - 'export WEB=/home/bxp7143/public_html'
 
-    # wipe old files so we don't leave stale bundles behind
-    - /bin/rm -rf $DEPLOYPATH/*
+    # ensure target dirs exist
+    - '/bin/mkdir -p $WEB $WEB/api'
 
-    # copy the built React app (client/build) into the live folder
-    - /bin/cp -r client/build/* $DEPLOYPATH
+    # copy built React app (assumes client/build is already committed)
+    - '/bin/rsync -a --delete $REPO/client/build/ $WEB/'
+
+    # copy PHP API
+    - '/bin/rsync -a $REPO/server/api/ $WEB/api/'
+
+    # write a minimal .htaccess for SPA routing (NO <IfModule> block)
+    - '/bin/bash -lc "cat > $WEB/.htaccess <<EOF
+RewriteEngine On
+RewriteBase /
+# allow /api/* to hit PHP
+RewriteRule ^api/ - [L]
+# pass through files/dirs
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+# everything else -> React
+RewriteRule . /index.html [L]
+EOF"'
