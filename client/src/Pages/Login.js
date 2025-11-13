@@ -201,14 +201,9 @@ const Login = () => {
               {isSignInForm ? (
                   <>
                     Don't have an account?{' '}
-                    <button
-                        type="button"
-                        onClick={() => navigate('/signup')}
-                        className="text-blue-600 hover:underline"
-                        disabled={isLoading}
-                    >
+                    <Link to="/signup" className="text-blue-600 hover:underline">
                       Sign up
-                    </button>
+                    </Link>
                   </>
               ) : (
                   <>
