@@ -1,0 +1,5 @@
+[12-Nov-2025 20:30:48 UTC] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, array given in /home/bxp7143/public_html/api/auth/login.php:8
+Stack trace:
+#0 /home/bxp7143/public_html/api/auth/login.php(8): trim(Array)
+#1 {main}
+  thrown in /home/bxp7143/public_html/api/auth/login.php on line 8

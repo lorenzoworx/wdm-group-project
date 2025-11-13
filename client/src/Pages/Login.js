@@ -1,11 +1,12 @@
 // Pandey, Bhumika - 1000XXXXXX
 // [Teammate Last, First] - [ID]
-// Login / Signup flow with localStorage auth
+// Login / Signup flow with PHP + MySQL API (no hardcoded bypass)
 // After successful auth (ANY role), we always land on /dashboard/home
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkValidData } from '../utilis/validate';
+import { apiLogin, apiRegister } from '../api/auth';
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true);
@@ -17,13 +18,19 @@ const Login = () => {
   const email = useRef(null);
   const password = useRef(null);
 
+  // If already logged in (token exists), go to dashboard
+  useEffect(() => {
+    const token = localStorage.getItem('userToken');
+    if (token) navigate('/dashboard/home');
+  }, [navigate]);
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
     setIsLoading(true);
 
     try {
-      // ---------- 1. VALIDATION ----------
+      // ---------- 1) VALIDATION ----------
       let validationMessage = null;
 
       if (!isSignInForm) {
@@ -34,7 +41,7 @@ const Login = () => {
             password.current.value
         );
       } else {
-        // Login validation: just make sure email looks like an email and password exists
+        // Login validation: basic email/password presence
         const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
         if (!emailRegex.test(email.current.value)) {
           validationMessage = 'Email ID is not valid';
@@ -49,108 +56,63 @@ const Login = () => {
         return;
       }
 
-      const typedEmail = email.current.value;
+      const typedEmail = email.current.value.trim();
       const typedPassword = password.current.value;
 
-      // ---------- 2. SPECIAL ADMIN LOGIN ----------
-      // You have a hardcoded admin credential; keep it so you can demo the admin role.
-      if (
-          isSignInForm &&
-          typedEmail === 'admin@uta.edu' &&
-          typedPassword === 'Myproject@123'
-      ) {
-        // Save session info in localStorage
-        localStorage.setItem('userToken', 'admin-token');
-        localStorage.setItem('userType', 'admin');
+      // ---------- 2) SIGN IN (PHP API) ----------
+      if (isSignInForm) {
+        // IMPORTANT: apiLogin expects (email, password), not an object
+        const { token, user } = await apiLogin(typedEmail, typedPassword);
+
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('userType', user.role || 'student');
         localStorage.setItem(
             'userData',
             JSON.stringify({
-              name: 'Admin',
-              email: 'admin@uta.edu',
-              userType: 'admin',
+              name: user.name,
+              email: user.email,
+              userType: user.role || 'student',
             })
         );
 
-        // IMPORTANT CHANGE:
-        // No matter what role -> go to /dashboard/home
         navigate('/dashboard/home');
-        return;
-      }
-
-      // ---------- 3. SIGN IN FLOW (non-admin) ----------
-      if (isSignInForm) {
-        // look up saved users in localStorage
-        const users = JSON.parse(localStorage.getItem('localUsers') || '[]');
-
-        const foundUser = users.find(
-            (u) => u.email === typedEmail && u.password === typedPassword
-        );
-
-        if (foundUser) {
-          // set session
-          localStorage.setItem('userToken', 'user-token');
-          localStorage.setItem('userType', foundUser.userType);
-          localStorage.setItem(
-              'userData',
-              JSON.stringify({
-                name: foundUser.name,
-                email: foundUser.email,
-                userType: foundUser.userType,
-              })
-          );
-
-          // ALWAYS GO TO /dashboard/home
-          navigate('/dashboard/home');
-        } else {
-          setErrorMessage('Invalid email or password');
-        }
-
         setIsLoading(false);
         return;
       }
 
-      // ---------- 4. SIGN UP FLOW ----------
-      // Any new registered user becomes a "student" userType by default.
+      // ---------- 3) SIGN UP (PHP API) ----------
       if (!isSignInForm) {
-        const users = JSON.parse(localStorage.getItem('localUsers') || '[]');
-        const exists = users.find((u) => u.email === typedEmail);
+        const fullName = (name.current.value || '').trim();
 
-        if (exists) {
-          setErrorMessage('User already exists. Please login.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Create the new local user
-        const newUser = {
-          name: name.current.value,
+        const { token, user } = await apiRegister({
+          name: fullName,
           email: typedEmail,
           password: typedPassword,
-          userType: 'student',
-        };
+        });
 
-        users.push(newUser);
-        localStorage.setItem('localUsers', JSON.stringify(users));
-
-        // "Log them in" immediately after sign up
-        localStorage.setItem('userToken', 'user-token');
-        localStorage.setItem('userType', 'student');
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('userType', user.role || 'student');
         localStorage.setItem(
             'userData',
             JSON.stringify({
-              name: newUser.name,
-              email: newUser.email,
-              userType: 'student',
+              name: user.name,
+              email: user.email,
+              userType: user.role || 'student',
             })
         );
 
-        // AGAIN: ALWAYS GO TO /dashboard/home AFTER SIGNUP
         navigate('/dashboard/home');
         setIsLoading(false);
         return;
       }
     } catch (err) {
-      setErrorMessage(err.message || 'Something went wrong');
+      // Try to show a helpful message if the API sent text/JSON
+      let msg = err?.message || 'Something went wrong';
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed?.error) msg = parsed.error;
+      } catch {}
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }
@@ -231,11 +193,7 @@ const Login = () => {
                 } transition`}
                 disabled={isLoading}
             >
-              {isLoading
-                  ? 'Please wait...'
-                  : isSignInForm
-                      ? 'Log in'
-                      : 'Sign up'}
+              {isLoading ? 'Please wait...' : isSignInForm ? 'Log in' : 'Sign up'}
             </button>
 
             {/* TOGGLE SIGN IN / SIGN UP */}

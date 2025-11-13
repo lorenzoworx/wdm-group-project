@@ -1,3 +1,4 @@
+// src/components/Body.jsx
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
 
@@ -6,12 +7,13 @@ import Header from './Header';
 import Footer from './Footer';
 import DashboardHeader from './DashboardHeader';
 
-// Main pages
+// Main pages (these files must export DEFAULT components)
 import Login from '../Pages/Login';
 import About from '../Pages/About';
 import Contact from '../Pages/Contact';
+import Signup from '../Pages/Signup';
 
-// Dashboard / sections
+// Dashboard / sections (also default exports)
 import DashboardHome from '../Pages/DashboardHome';
 import StudentDashboard from '../Pages/StudentDashboard';
 import InstructorDashboard from '../Pages/InstructorDashboard';
@@ -28,75 +30,69 @@ import Resources from '../Pages/Resources';
 import Reports from '../Pages/Reports';
 import Performance from '../Pages/Performance';
 import Reviews from '../Pages/Reviews';
-import Signup from '../Pages/Signup';
 import Grades from '../Pages/Grades';
 
-// Error
-import Error from '../Pages/Error';
+// Avoid naming collision with the global Error constructor
+import ErrorPage from '../Pages/Error';
 
-// Layout for normal pages (Login, About, Contact)
 const MainLayout = () => (
-  <div>
-    <Header />
-    <main className="min-h-screen bg-gray-50">
-      <Outlet />
-    </main>
-    <Footer />
-  </div>
-);
-
-// Layout for dashboard pages (with DashboardHeader)
-const DashboardLayout = () => (
-  <div className="min-h-screen bg-gray-50">
-    <DashboardHeader />
-    <main className="p-6">
-      <div className="app-container">
+    <div>
+      <Header />
+      <main className="min-h-screen bg-gray-50">
         <Outlet />
-      </div>
-    </main>
-  </div>
+      </main>
+      <Footer />
+    </div>
 );
 
-// Router
-const Body = () => {
-  const appRouter = createBrowserRouter([
-    {
-      element: <MainLayout />,
-      errorElement: <Error />,
-      children: [
-        { path: '/', element: <Login /> },
-        { path: '/about', element: <About /> },
-        { path: '/contact', element: <Contact /> },
-        { path: '/signup', element: <Signup /> },
-      ],
-    },
-    {
-      element: <DashboardLayout />,
-      errorElement: <Error />,
-      children: [
-        { path: '/dashboard', element: <DashboardHome /> },
-        { path: '/dashboard/events', element: <EventsPage /> },
-        { path: '/dashboard/classes', element: <ClassesPage /> },
-        { path: '/dashboard/exams', element: <ExamsPage /> },
-        { path: '/dashboard/users', element: <UsersPage /> },
-        { path: '/dashboard/reports', element: <Reports /> },
-        { path: '/dashboard/performance', element: <Performance /> },
-        { path: '/dashboard/reviews', element: <Reviews /> },
-        { path: '/dashboard/profile', element: <ProfilePage /> },
-        { path: '/dashboard/announcements', element: <Announcements /> },
-        { path: '/dashboard/resources', element: <Resources /> },
-        { path: '/grades', element: <Grades /> },
-        { path: '/dashboard/grades', element: <Grades /> },
-        { path: '/dashboard/student', element: <StudentDashboard /> },
-        { path: '/dashboard/instructor', element: <InstructorDashboard /> },
-        { path: '/dashboard/admin', element: <AdminDashboard /> },
-        { path: '/dashboard/qa', element: <QAOfficePage /> },
-        { path: '/dashboard/home', element: <StudentHomepage /> },
-      ],
-    },
-  ]);
+const DashboardLayout = () => (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader />
+      <main className="p-6">
+        <div className="app-container">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+);
 
-  return <RouterProvider router={appRouter} />;
-};
+const router = createBrowserRouter([
+  {
+    element: <MainLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      { path: '/', element: <Login /> },
+      { path: '/about', element: <About /> },
+      { path: '/contact', element: <Contact /> },
+      { path: '/signup', element: <Signup /> },
+    ],
+  },
+  {
+    element: <DashboardLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      { path: '/dashboard', element: <DashboardHome /> },
+      { path: '/dashboard/home', element: <StudentHomepage /> },
+      { path: '/dashboard/events', element: <EventsPage /> },
+      { path: '/dashboard/classes', element: <ClassesPage /> },
+      { path: '/dashboard/exams', element: <ExamsPage /> },
+      { path: '/dashboard/users', element: <UsersPage /> },
+      { path: '/dashboard/reports', element: <Reports /> },
+      { path: '/dashboard/performance', element: <Performance /> },
+      { path: '/dashboard/reviews', element: <Reviews /> },
+      { path: '/dashboard/profile', element: <ProfilePage /> },
+      { path: '/dashboard/announcements', element: <Announcements /> },
+      { path: '/dashboard/resources', element: <Resources /> },
+      { path: '/dashboard/grades', element: <Grades /> },
+      { path: '/grades', element: <Grades /> },
+      { path: '/dashboard/student', element: <StudentDashboard /> },
+      { path: '/dashboard/instructor', element: <InstructorDashboard /> },
+      { path: '/dashboard/admin', element: <AdminDashboard /> },
+      { path: '/dashboard/qa', element: <QAOfficePage /> },
+    ],
+  },
+]);
 
-export default Body;
+export default function Body() {
+  return <RouterProvider router={router} />;
+}

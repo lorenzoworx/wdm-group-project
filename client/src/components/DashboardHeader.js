@@ -6,7 +6,9 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { getUserType, logoutUser, getUserData } from "../utilis/auth";
+import { getUserType, getUserData } from "../utilis/auth";
+import { signOutUser } from "../firebase";   // <-- new
+
 
 const DashboardHeader = () => {
   const navigate = useNavigate();
@@ -16,11 +18,27 @@ const DashboardHeader = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const handleLogout = () => {
-    logoutUser();
-    alert("You have been logged out.");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      // sign out from Firebase
+      await signOutUser();
+
+      // clear any local session data your app uses
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('userData');
+
+      setShowProfileDropdown(false);   // close the dropdown if open
+      alert("You have been logged out.");
+
+      // send them to the login page (or "/" if that's your login route)
+      navigate("/login");
+    } catch (e) {
+      console.error(e);
+      alert("Sign out failed. Please try again.");
+    }
   };
+
 
   // Close dropdown when clicking outside
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getUserData } from '../utilis/auth';
+import { getExams, createExam, updateExam, deleteExam } from '../api/exams';
 
 const initialNewExam = {
   title: "",
@@ -34,97 +35,142 @@ const ExamsPage = () => {
   };
 
   const loadExams = () => {
-    // Read raw value first so we can detect malformed JSON vs empty array.
-    const raw = localStorage.getItem('exams');
-    let savedExams = null;
-    try {
-      savedExams = raw ? JSON.parse(raw) : null;
-    } catch (err) {
-      console.warn('Failed to parse exams from localStorage, will reload defaults', err);
-      savedExams = null;
-    }
+    // Network-first: try backend API, fall back to local/public JSON
+    const tryLoad = async () => {
+      // try backend first
+      try {
+        const resp = await getExams();
+        const list = resp?.exams || [];
+        setExams(list);
+        localStorage.setItem('exams', JSON.stringify(list));
+      } catch (err) {
+        // backend failed -> fallback to localStorage/public JSON
+        console.debug('getExams failed, falling back to local/public data', err);
 
-    const fetchSampleExams = async () => {
-      // Prefer PUBLIC_URL so the app works on different base paths
-      const pathsToTry = [
-        (process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/data/examsData.json` : null),
-        '/data/examsData.json',
-        `${window.location.origin}/data/examsData.json`,
-      ].filter(Boolean);
-
-      for (const p of pathsToTry) {
+        // Read raw value first so we can detect malformed JSON vs empty array.
+        const raw = localStorage.getItem('exams');
+        let savedExams = null;
         try {
-          const res = await fetch(p, { cache: 'no-store' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          const initialExams = data?.exams || [];
-          setExams(initialExams);
-          localStorage.setItem('exams', JSON.stringify(initialExams));
-          return;
-        } catch (err) {
-          // try next path
-          console.debug('fetch sample exams failed for', p, err);
+          savedExams = raw ? JSON.parse(raw) : null;
+        } catch (e) {
+          console.warn('Failed to parse exams from localStorage, will reload defaults', e);
+          savedExams = null;
+        }
+
+        if (!savedExams || !Array.isArray(savedExams) || savedExams.length === 0) {
+          // load from public/data
+          const pathsToTry = [
+            (process.env.PUBLIC_URL ? `${process.env.PUBLIC_URL}/data/examsData.json` : null),
+            '/data/examsData.json',
+            `${window.location.origin}/data/examsData.json`,
+          ].filter(Boolean);
+          let loaded = false;
+          for (const p of pathsToTry) {
+            try {
+              const r = await fetch(p, { cache: 'no-store' });
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
+              const data = await r.json();
+              const initialExams = data?.exams || [];
+              setExams(initialExams);
+              localStorage.setItem('exams', JSON.stringify(initialExams));
+              loaded = true; break;
+            } catch (e2) {
+              console.debug('fetch sample exams failed for', p, e2);
+            }
+          }
+          if (!loaded) {
+            console.warn('Could not load sample exams from public/data/examsData.json');
+            setExams([]);
+          }
+        } else {
+          setExams(savedExams);
         }
       }
 
-      console.warn('Could not load sample exams from public/data/examsData.json');
-      setExams([]);
+      // Load exam results for students (local only)
+      const results = JSON.parse(localStorage.getItem('examResults') || '{}');
+      setExamResults(results);
     };
 
-    if (!savedExams || !Array.isArray(savedExams) || savedExams.length === 0) {
-      // No exams found locally: load defaults from public folder
-      fetchSampleExams();
-    } else {
-      setExams(savedExams);
-    }
-
-    // Load exam results for students
-    const results = JSON.parse(localStorage.getItem('examResults') || '{}');
-    setExamResults(results);
+    tryLoad();
   };
 
   // Save handler that supports both Create and Edit flows
   const handleSaveExam = (e) => {
     e.preventDefault();
 
-    if (isEditing && editingExamId != null) {
-      // update existing exam
-      const updatedExams = exams.map((ex) => {
-        if (ex.id === editingExamId) {
-          return {
-            ...ex,
-            ...newExam,
-            id: editingExamId,
-            // preserve createdBy/createdAt if they existed
-            createdBy: ex.createdBy || userData?.email,
-            createdAt: ex.createdAt || new Date().toISOString()
-          };
+    // Network-first: call backend for create/update, fall back to localStorage on failure
+    const doSave = async () => {
+      if (isEditing && editingExamId != null) {
+        try {
+          const payload = { id: editingExamId, ...newExam };
+          const resp = await updateExam(payload);
+          const updatedExam = resp.exam;
+          const updatedExams = exams.map(ex => ex.id === editingExamId ? updatedExam : ex);
+          setExams(updatedExams);
+          localStorage.setItem('exams', JSON.stringify(updatedExams));
+          setIsEditing(false);
+          setEditingExamId(null);
+          setNewExam(initialNewExam);
+          setShowCreateModal(false);
+          return;
+        } catch (err) {
+          console.debug('updateExam failed, falling back to local update', err);
+          // fallback to local update below
         }
-        return ex;
-      });
+      }
 
-      setExams(updatedExams);
-      localStorage.setItem('exams', JSON.stringify(updatedExams));
-      setIsEditing(false);
-      setEditingExamId(null);
-      setNewExam(initialNewExam);
-      setShowCreateModal(false);
-      return;
-    }
+      // create new exam (try backend first)
+      try {
+        const payload = { ...newExam };
+        const resp = await createExam(payload);
+        const serverExam = resp.exam;
+        const updatedExams = [...exams, serverExam];
+        setExams(updatedExams);
+        localStorage.setItem('exams', JSON.stringify(updatedExams));
+        setNewExam(initialNewExam);
+        setShowCreateModal(false);
+        return;
+      } catch (err) {
+        console.debug('createExam failed, falling back to local create', err);
+        // local fallback: keep behavior that existed previously
+        if (isEditing && editingExamId != null) {
+          const updatedExams = exams.map((ex) => {
+            if (ex.id === editingExamId) {
+              return {
+                ...ex,
+                ...newExam,
+                id: editingExamId,
+                createdBy: ex.createdBy || userData?.email,
+                createdAt: ex.createdAt || new Date().toISOString()
+              };
+            }
+            return ex;
+          });
+          setExams(updatedExams);
+          localStorage.setItem('exams', JSON.stringify(updatedExams));
+          setIsEditing(false);
+          setEditingExamId(null);
+          setNewExam(initialNewExam);
+          setShowCreateModal(false);
+          return;
+        }
 
-    // create new exam
-    const examToAdd = {
-      ...newExam,
-      id: Date.now(),
-      createdBy: userData?.email || 'unknown',
-      createdAt: new Date().toISOString()
+        const examToAdd = {
+          ...newExam,
+          id: Date.now(),
+          createdBy: userData?.email || 'unknown',
+          createdAt: new Date().toISOString()
+        };
+        const updatedExams = [...exams, examToAdd];
+        setExams(updatedExams);
+        localStorage.setItem('exams', JSON.stringify(updatedExams));
+        setNewExam(initialNewExam);
+        setShowCreateModal(false);
+      }
     };
 
-    const updatedExams = [...exams, examToAdd];
-    setExams(updatedExams);
-    localStorage.setItem('exams', JSON.stringify(updatedExams));
-    setNewExam(initialNewExam);
-    setShowCreateModal(false);
+    doSave();
   };
 
   const handleStartExam = (exam) => {
@@ -173,9 +219,21 @@ const ExamsPage = () => {
     const confirmed = window.confirm('Are you sure you want to delete this exam? This action cannot be undone.');
     if (!confirmed) return;
 
-    const updated = exams.filter(ex => ex.id !== examId);
-    setExams(updated);
-    localStorage.setItem('exams', JSON.stringify(updated));
+    const doDelete = async () => {
+      try {
+        await deleteExam(examId);
+        const updated = exams.filter(ex => ex.id !== examId);
+        setExams(updated);
+        localStorage.setItem('exams', JSON.stringify(updated));
+      } catch (err) {
+        console.debug('deleteExam failed, falling back to local delete', err);
+        const updated = exams.filter(ex => ex.id !== examId);
+        setExams(updated);
+        localStorage.setItem('exams', JSON.stringify(updated));
+      }
+    };
+
+    doDelete();
   };
 
   const calculateScore = (exam, userAnswers) => {

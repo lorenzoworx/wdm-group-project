@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getClasses, createClass, updateClass, deleteClass } from "../api/classes"; // NEW: PHP API helpers
 
 const initialNewClass = {
   title: "",
@@ -13,428 +14,485 @@ const initialNewClass = {
 
 const ClassesPage = () => {
   const [data, setData] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newClass, setNewClass] = useState(initialNewClass);
   const [enrollmentStatus, setEnrollmentStatus] = useState({});
-  const [userType, setUserType] = useState('');
-  // Editing state for classes
+  const [userType, setUserType] = useState("");
+  // Editing state for classes (local-only for now)
   const [isEditing, setIsEditing] = useState(false);
   const [editingClassId, setEditingClassId] = useState(null);
 
   useEffect(() => {
     loadClasses();
-    // Get user type from localStorage
-    const currentUserType = localStorage.getItem('userType') || 'student';
+    const currentUserType = localStorage.getItem("userType") || "student";
     setUserType(currentUserType);
   }, []);
 
-  const loadClasses = () => {
-    // Load classes from localStorage first, then fall back to default data
-    const savedClasses = JSON.parse(localStorage.getItem('classes') || 'null');
-    if (savedClasses) {
-      setData(savedClasses);
-    } else {
-      // Default classes data
-      const defaultClasses = {
-        classes: [
-          {
-            id: 1,
-            title: "Web Data Management",
-            courseCode: "CS5335",
-            description: "Advanced concepts in web data management and database systems",
-            instructor: "Dr. Smith",
-            schedule: "Mon, Wed, Fri 2:15 PM",
-            location: "ERB 130",
-            maxStudents: 30,
-            currentStudents: 25,
-            prerequisites: "CS 5330 or equivalent",
-            isEnrolled: false
-          },
-          {
-            id: 2,
-            title: "Machine Learning",
-            courseCode: "CS 5339",
-            description: "Introduction to machine learning algorithms and applications",
-            instructor: "Dr. Johnson",
-            schedule: "Tue, Thu 10:00 AM",
-            location: "ERB 140",
-            maxStudents: 25,
-            currentStudents: 20,
-            prerequisites: "CS 5330, Linear Algebra",
-            isEnrolled: false
-          }
-        ]
-      };
-      setData(defaultClasses);
-      localStorage.setItem('classes', JSON.stringify(defaultClasses));
+  // Load classes from PHP API (fallback to empty if it fails)
+  const loadClasses = async () => {
+    try {
+      const rows = await getClasses(); // [{...}]
+      setData({ classes: rows });
+    } catch (e) {
+      console.error("Failed to load classes:", e);
+      setData({ classes: [] });
     }
-    
-    // Load enrollment status
-    const savedEnrollments = JSON.parse(localStorage.getItem('classEnrollments') || '{}');
+    // Load enrollment status (still client-side)
+    const savedEnrollments = JSON.parse(
+        localStorage.getItem("classEnrollments") || "{}"
+    );
     setEnrollmentStatus(savedEnrollments);
   };
 
   if (!data) return <p className="text-center mt-10">Loading...</p>;
 
-  // Save handler supports both creating a new class and editing an existing one
-  const handleSaveClass = (e) => {
+  // Save handler supports both creating a new class (API) and editing an existing one (local for now)
+  const handleSaveClass = async (e) => {
     e.preventDefault();
 
+    // EDIT (use server-side update now)
     if (isEditing && editingClassId != null) {
-      const updatedClasses = data.classes.map((cls) => {
-        if (cls.id === editingClassId) {
-          return {
-            ...cls,
-            ...newClass,
-            id: editingClassId,
-            // keep currentStudents/isEnrolled if present
-            currentStudents: cls.currentStudents || 0,
-            isEnrolled: cls.isEnrolled || false
-          };
-        }
-        return cls;
-      });
+      try {
+        const payload = {
+          id: editingClassId,
+          title: newClass.title.trim(),
+          courseCode: newClass.courseCode.trim(),
+          description: newClass.description.trim(),
+          instructor: newClass.instructor.trim(),
+          schedule: newClass.schedule.trim(),
+          location: newClass.location.trim(),
+          maxStudents: Number(newClass.maxStudents),
+          prerequisites: newClass.prerequisites.trim(),
+        };
 
-      const updatedData = { classes: updatedClasses };
-      setData(updatedData);
-      localStorage.setItem('classes', JSON.stringify(updatedData));
-      // reset edit state
-      setIsEditing(false);
-      setEditingClassId(null);
-      setNewClass(initialNewClass);
-      setShowCreateModal(false);
-      return;
+        const { class: updated } = await updateClass(payload);
+
+        const updatedClasses = data.classes.map((cls) =>
+          cls.id === editingClassId ? { ...cls, ...updated } : cls
+        );
+        setData({ classes: updatedClasses });
+
+        // reset edit state
+        setIsEditing(false);
+        setEditingClassId(null);
+        setNewClass(initialNewClass);
+        setShowCreateModal(false);
+        return;
+      } catch (err) {
+        const msg = err?.message || "Failed to update class";
+        alert(msg);
+        return;
+      }
     }
 
-    // create new class
-    const newId = Math.max(0, ...data.classes.map(c => c.id)) + 1;
-    const classToAdd = {
-      ...newClass,
-      id: newId,
-      currentStudents: 0,
-      isEnrolled: false
-    };
+    // CREATE (via API; allowed for admin/instructor only)
+    try {
+      const payload = {
+        title: newClass.title.trim(),
+        courseCode: newClass.courseCode.trim(),
+        description: newClass.description.trim(),
+        instructor: newClass.instructor.trim(),
+        schedule: newClass.schedule.trim(),
+        location: newClass.location.trim(),
+        maxStudents: Number(newClass.maxStudents),
+        prerequisites: newClass.prerequisites.trim()
+      };
 
-    const updatedData = {
-      classes: [...data.classes, classToAdd]
-    };
-    setData(updatedData);
-    localStorage.setItem('classes', JSON.stringify(updatedData));
-    setNewClass(initialNewClass);
-    setShowCreateModal(false);
+      const { class: created } = await createClass(payload);
+      // Prepend newest
+      setData({ classes: [created, ...data.classes] });
+
+      setNewClass(initialNewClass);
+      setShowCreateModal(false);
+    } catch (err) {
+      const msg = err?.message || "Failed to create class";
+      alert(msg);
+    }
   };
 
   const handleEnroll = (classId) => {
     const newStatus = { ...enrollmentStatus, [classId]: true };
     setEnrollmentStatus(newStatus);
-    localStorage.setItem('classEnrollments', JSON.stringify(newStatus));
-    
-    // Update current students count
-    const updatedClasses = data.classes.map(cls => 
-      cls.id === classId 
-        ? { ...cls, currentStudents: cls.currentStudents + 1, isEnrolled: true }
-        : cls
+    localStorage.setItem("classEnrollments", JSON.stringify(newStatus));
+
+    const updatedClasses = data.classes.map((cls) =>
+        cls.id === classId
+            ? {
+              ...cls,
+              currentStudents: (cls.currentStudents || 0) + 1,
+              isEnrolled: true
+            }
+            : cls
     );
-    const updatedData = { classes: updatedClasses };
-    setData(updatedData);
-    localStorage.setItem('classes', JSON.stringify(updatedData));
+    setData({ classes: updatedClasses });
   };
 
   const handleUnenroll = (classId) => {
     const newStatus = { ...enrollmentStatus };
     delete newStatus[classId];
     setEnrollmentStatus(newStatus);
-    localStorage.setItem('classEnrollments', JSON.stringify(newStatus));
-    
-    // Update current students count
-    const updatedClasses = data.classes.map(cls => 
-      cls.id === classId 
-        ? { ...cls, currentStudents: cls.currentStudents - 1, isEnrolled: false }
-        : cls
+    localStorage.setItem("classEnrollments", JSON.stringify(newStatus));
+
+    const updatedClasses = data.classes.map((cls) =>
+        cls.id === classId
+            ? {
+              ...cls,
+              currentStudents: Math.max(0, (cls.currentStudents || 1) - 1),
+              isEnrolled: false
+            }
+            : cls
     );
-    const updatedData = { classes: updatedClasses };
-    setData(updatedData);
-    localStorage.setItem('classes', JSON.stringify(updatedData));
+    setData({ classes: updatedClasses });
   };
 
   const handleEditClick = (cls) => {
     setIsEditing(true);
     setEditingClassId(cls.id);
     setNewClass({
-      title: cls.title || '',
-      courseCode: cls.courseCode || '',
-      description: cls.description || '',
-      instructor: cls.instructor || '',
-      schedule: cls.schedule || '',
-      location: cls.location || '',
-      maxStudents: cls.maxStudents || '',
-      prerequisites: cls.prerequisites || ''
+      title: cls.title || "",
+      courseCode: cls.courseCode || "",
+      description: cls.description || "",
+      instructor: cls.instructor || "",
+      schedule: cls.schedule || "",
+      location: cls.location || "",
+      maxStudents: cls.maxStudents || "",
+      prerequisites: cls.prerequisites || ""
     });
     setShowCreateModal(true);
   };
 
-  const handleDeleteClass = (classId) => {
-    const confirmed = window.confirm('Are you sure you want to delete this class? This action cannot be undone.');
+  const handleDeleteClass = async (classId) => {
+    const confirmed = window.confirm(
+        "Are you sure you want to delete this class? This action cannot be undone."
+    );
     if (!confirmed) return;
 
-    const updated = data.classes.filter(c => c.id !== classId);
-    const updatedData = { classes: updated };
-    setData(updatedData);
-    localStorage.setItem('classes', JSON.stringify(updatedData));
+    try {
+      // Call server API to delete
+      await deleteClass(classId);
+      // Remove from local UI after server confirms
+      const updated = data.classes.filter((c) => c.id !== classId);
+      setData({ classes: updated });
+    } catch (err) {
+      const msg = err?.message || 'Failed to delete class';
+      alert(msg);
+    }
   };
 
-  const filteredClasses = data.classes.filter(cls => {
-    const matchesFilter = filter === 'all' || cls.courseCode.toLowerCase().includes(filter.toLowerCase());
-    const matchesSearch = searchQuery === '' || 
-      cls.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cls.courseCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cls.instructor.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredClasses = data.classes.filter((cls) => {
+    const matchesFilter =
+        filter === "all" ||
+        cls.courseCode.toLowerCase().includes(filter.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+        q === "" ||
+        cls.title.toLowerCase().includes(q) ||
+        cls.courseCode.toLowerCase().includes(q) ||
+        cls.instructor.toLowerCase().includes(q);
     return matchesFilter && matchesSearch;
   });
 
-  const canCreateClass = userType === 'admin' || userType === 'instructor';
-  const canEnroll = userType === 'student';
+  const canCreateClass = userType === "admin" || userType === "instructor";
+  const canEnroll = userType === "student";
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="page-container p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Classes</h1>
-          <p className="text-gray-600 mt-1">
-            {userType === 'student' ? 'Browse and enroll in classes' : 
-             userType === 'instructor' ? 'Manage your classes' : 
-             'Manage all classes and enrollments'}
-          </p>
-        </div>
-
-        {/* Search and Create */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3">
-          <div className="relative w-full max-w-md">
-            <input
-              type="search"
-              placeholder="Search classes..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <svg className="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      <div className="min-h-screen bg-gray-50">
+        <div className="page-container p-6">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-gray-800">Classes</h1>
+            <p className="text-gray-600 mt-1">
+              {userType === "student"
+                  ? "Browse and enroll in classes"
+                  : userType === "instructor"
+                      ? "Manage your classes"
+                      : "Manage all classes and enrollments"}
+            </p>
           </div>
-          {canCreateClass && (
-            <div className="w-full sm:w-auto">
-              <button
-                onClick={() => { setShowCreateModal(true); setNewClass(initialNewClass); setIsEditing(false); setEditingClassId(null); }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
-              >
-                Create Class
-              </button>
-            </div>
-          )}
-        </div>
 
-        {/* Filter tabs */}
-        <div className="mb-6">
-          <div className="flex space-x-8">
-            {['All', 'CS', 'MATH', 'ENG'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setFilter(tab.toLowerCase())}
-                className={`py-2 px-1 -mb-px border-b-2 transition-colors ${
-                  filter === tab.toLowerCase()
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+          {/* Search and Create */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3">
+            <div className="relative w-full max-w-md">
+              <input
+                  type="search"
+                  placeholder="Search classes..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <svg
+                  className="w-5 h-5 absolute left-3 top-2.5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
               >
-                {tab}
-              </button>
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            {canCreateClass && (
+                <div className="w-full sm:w-auto">
+                  <button
+                      onClick={() => {
+                        setShowCreateModal(true);
+                        setNewClass(initialNewClass);
+                        setIsEditing(false);
+                        setEditingClassId(null);
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
+                  >
+                    Create Class
+                  </button>
+                </div>
+            )}
+          </div>
+
+          {/* Filter tabs */}
+          <div className="mb-6">
+            <div className="flex space-x-8">
+              {["All", "CS", "MATH", "ENG"].map((tab) => (
+                  <button
+                      key={tab}
+                      onClick={() => setFilter(tab.toLowerCase())}
+                      className={`py-2 px-1 -mb-px border-b-2 transition-colors ${
+                          filter === tab.toLowerCase()
+                              ? "border-blue-600 text-blue-600"
+                              : "border-transparent text-gray-500 hover:text-gray-700"
+                      }`}
+                  >
+                    {tab}
+                  </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Class cards */}
+          <div className="grid grid-cols-1 gap-4">
+            {filteredClasses.map((cls) => (
+                <div key={cls.id} className="bg-white p-6 rounded-lg shadow-sm">
+                  <div className="flex items-start justify-between responsive-row">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                      {cls.courseCode}
+                    </span>
+                        <span className="text-sm text-gray-600">{cls.schedule}</span>
+                        <span className="text-sm text-gray-600">{cls.location}</span>
+                      </div>
+                      <h3 className="text-lg font-medium mb-2">{cls.title}</h3>
+                      <p className="text-gray-600 text-sm mb-3 break-words">
+                        {cls.description}
+                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-500">
+                        <span>Instructor: {cls.instructor}</span>
+                        <span>
+                      Students: {cls.currentStudents}/{cls.maxStudents}
+                    </span>
+                        <span>Prerequisites: {cls.prerequisites}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 sm:mt-0">
+                      {canEnroll && (
+                          <button
+                              onClick={() =>
+                                  enrollmentStatus[cls.id]
+                                      ? handleUnenroll(cls.id)
+                                      : handleEnroll(cls.id)
+                              }
+                              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                                  enrollmentStatus[cls.id]
+                                      ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                                      : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
+                              }`}
+                          >
+                            {enrollmentStatus[cls.id] ? "Unenroll" : "Enroll"}
+                          </button>
+                      )}
+                      {canCreateClass && (
+                          <div className="flex gap-2 mt-2 sm:mt-0">
+                            <button
+                                onClick={() => handleEditClick(cls)}
+                                className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700"
+                            >
+                              Edit
+                            </button>
+                            <button
+                                onClick={() => handleDeleteClass(cls.id)}
+                                className="px-3 py-1 text-sm text-red-600 hover:text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
             ))}
           </div>
         </div>
 
-        {/* Class cards */}
-        <div className="grid grid-cols-1 gap-4">
-          {filteredClasses.map((cls) => (
-            <div key={cls.id} className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-start justify-between responsive-row">
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                      {cls.courseCode}
-                    </span>
-                    <span className="text-sm text-gray-600">{cls.schedule}</span>
-                    <span className="text-sm text-gray-600">{cls.location}</span>
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">{cls.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3 break-words">{cls.description}</p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-500">
-                    <span>Instructor: {cls.instructor}</span>
-                    <span>Students: {cls.currentStudents}/{cls.maxStudents}</span>
-                    <span>Prerequisites: {cls.prerequisites}</span>
-                  </div>
-                </div>
-                <div className="mt-3 sm:mt-0">
-                  {canEnroll && (
-                    <button
-                      onClick={() => enrollmentStatus[cls.id] ? handleUnenroll(cls.id) : handleEnroll(cls.id)}
-                      className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
-                        enrollmentStatus[cls.id]
-                          ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                      }`}
-                    >
-                      {enrollmentStatus[cls.id] ? 'Unenroll' : 'Enroll'}
-                    </button>
-                  )}
-                  {canCreateClass && (
-                    <div className="flex gap-2 mt-2 sm:mt-0">
-                      <button onClick={() => handleEditClick(cls)} className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700">
-                        Edit
-                      </button>
-                      <button onClick={() => handleDeleteClass(cls.id)} className="px-3 py-1 text-sm text-red-600 hover:text-red-700">
-                        Delete
-                      </button>
+        {/* Create/Edit Class Modal */}
+        {showCreateModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl p-6 max-w-2xl w-full modal-scrollable">
+                <h3 className="text-xl font-semibold mb-4">
+                  {isEditing ? "Edit Class" : "Create New Class"}
+                </h3>
+                <form onSubmit={handleSaveClass}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Class Title
+                      </label>
+                      <input
+                          required
+                          type="text"
+                          value={newClass.title}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, title: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter class title"
+                      />
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Course Code
+                      </label>
+                      <input
+                          required
+                          type="text"
+                          value={newClass.courseCode}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, courseCode: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="e.g., CS5335"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Instructor
+                      </label>
+                      <input
+                          required
+                          type="text"
+                          value={newClass.instructor}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, instructor: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter instructor name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Schedule
+                      </label>
+                      <input
+                          required
+                          type="text"
+                          value={newClass.schedule}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, schedule: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="e.g., Mon, Wed, Fri 2:15 PM"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Location
+                      </label>
+                      <input
+                          required
+                          type="text"
+                          value={newClass.location}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, location: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter location"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Max Students
+                      </label>
+                      <input
+                          required
+                          type="number"
+                          value={newClass.maxStudents}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, maxStudents: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="30"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Prerequisites
+                      </label>
+                      <input
+                          type="text"
+                          value={newClass.prerequisites}
+                          onChange={(e) =>
+                              setNewClass({
+                                ...newClass,
+                                prerequisites: e.target.value
+                              })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter prerequisites"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                          value={newClass.description}
+                          onChange={(e) =>
+                              setNewClass({ ...newClass, description: e.target.value })
+                          }
+                          className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          rows="3"
+                          placeholder="Enter class description"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateModal(false);
+                          setIsEditing(false);
+                          setEditingClassId(null);
+                          setNewClass(initialNewClass);
+                        }}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      {isEditing ? "Save Changes" : "Create Class"}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-          ))}
-        </div>
+        )}
       </div>
-
-      {/* Create Class Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full modal-scrollable">
-           <h3 className="text-xl font-semibold mb-4">{isEditing ? 'Edit Class' : 'Create New Class'}</h3>
-           <form onSubmit={handleSaveClass}>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Class Title
-                 </label>
-                 <input
-                   required
-                   type="text"
-                   value={newClass.title}
-                   onChange={(e) => setNewClass({ ...newClass, title: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter class title"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Course Code
-                 </label>
-                 <input
-                   required
-                   type="text"
-                   value={newClass.courseCode}
-                   onChange={(e) => setNewClass({ ...newClass, courseCode: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="e.g., CS5335"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Instructor
-                 </label>
-                 <input
-                   required
-                   type="text"
-                   value={newClass.instructor}
-                   onChange={(e) => setNewClass({ ...newClass, instructor: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter instructor name"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Schedule
-                 </label>
-                 <input
-                   required
-                   type="text"
-                   value={newClass.schedule}
-                   onChange={(e) => setNewClass({ ...newClass, schedule: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="e.g., Mon, Wed, Fri 2:15 PM"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Location
-                 </label>
-                 <input
-                   required
-                   type="text"
-                   value={newClass.location}
-                   onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter location"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Max Students
-                 </label>
-                 <input
-                   required
-                   type="number"
-                   value={newClass.maxStudents}
-                   onChange={(e) => setNewClass({ ...newClass, maxStudents: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="30"
-                 />
-               </div>
-               <div className="md:col-span-2">
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Prerequisites
-                 </label>
-                 <input
-                   type="text"
-                   value={newClass.prerequisites}
-                   onChange={(e) => setNewClass({ ...newClass, prerequisites: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="Enter prerequisites"
-                 />
-               </div>
-               <div className="md:col-span-2">
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Description
-                 </label>
-                 <textarea
-                   value={newClass.description}
-                   onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
-                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   rows="3"
-                   placeholder="Enter class description"
-                 />
-               </div>
-             </div>
-             <div className="mt-6 flex justify-end gap-3">
-               <button
-                 type="button"
-                 onClick={() => { setShowCreateModal(false); setIsEditing(false); setEditingClassId(null); setNewClass(initialNewClass); }}
-                 className="px-4 py-2 text-gray-600 hover:text-gray-800"
-               >
-                 Cancel
-               </button>
-               <button
-                 type="submit"
-                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-               >
-                 {isEditing ? 'Save Changes' : 'Create Class'}
-               </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 

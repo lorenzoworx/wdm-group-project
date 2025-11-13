@@ -1,20 +1,21 @@
 {
-  "name": "wdm-group-project",
+  "name": "wdm-group-project-server",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
     "express": "^5.1.0",
-    "nodemon": "^3.1.10",
-    "pg": "^8.16.3"
+    "mysql2": "^3.15.3",
+    "next": "^14.2.33",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
