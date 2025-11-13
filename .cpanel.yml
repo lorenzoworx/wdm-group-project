@@ -1,11 +1,35 @@
 ---
 deployment:
   tasks:
-    # where the public site actually lives on uta.cloud
-    - export DEPLOYPATH=/home/bxp7143/public_html/
+    # Adjust these if your username or repo name differs.
+    - export REPO=/home/bxp7143/repositories/wdm-group-project
+    - export WEB=/home/bxp7143/public_html
 
-    # wipe old files so we don't leave stale bundles behind
-    - /bin/rm -rf $DEPLOYPATH/*
+    # Create needed dirs
+    - /bin/mkdir -p $WEB $WEB/api
 
-    # copy the built React app (client/build) into the live folder
-    - /bin/cp -r client/build/* $DEPLOYPATH
+    # If your React build is already committed (client/build exists):
+    - /bin/rsync -a --delete $REPO/client/build/ $WEB/
+
+    # Copy PHP API into /api
+    - /bin/rsync -a $REPO/server/api/ $WEB/api/
+
+    # OPTIONAL: if you keep any PHP helpers (bootstrap.php, db.php, etc.) in server/app or server/lib:
+    # - /bin/rsync -a $REPO/server/app/ $WEB/
+    # - /bin/rsync -a $REPO/server/lib/ $WEB/lib/
+
+    # SPA routing: send non-file/non-dir requests to index.html, but bypass /api
+    - /bin/bash -lc 'cat > $WEB/.htaccess << "EOF"
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  # don’t rewrite API
+  RewriteRule ^api/ - [L]
+  # pass through existing files/dirs
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  # otherwise serve the React app
+  RewriteRule . /index.html [L]
+</IfModule>
+EOF'
