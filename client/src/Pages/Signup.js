@@ -1,5 +1,5 @@
 // src/Pages/Signup.js
-import React, { useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkValidData } from '../utilis/validate';
 import { apiRegister } from '../api/auth';
