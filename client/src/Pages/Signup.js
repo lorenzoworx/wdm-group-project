@@ -12,6 +12,12 @@ const Signup = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const token = localStorage.getItem('userToken');
+    console.log('[Signup] mounted at', window.location.pathname, 'token:', token);
+    return () => console.log('[Signup] unmounted');
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
