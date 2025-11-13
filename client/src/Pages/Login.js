@@ -4,7 +4,7 @@
 // After successful auth (ANY role), we always land on /dashboard/home
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {Link, useNavigate} from 'react-router-dom';
 import { checkValidData } from '../utilis/validate';
 import { apiLogin, apiRegister } from '../api/auth';
 
