@@ -4,7 +4,7 @@
 // After successful auth (ANY role), we always land on /dashboard/home
 
 import React, { useState, useRef, useEffect } from 'react';
-import {Link, useNavigate} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import { checkValidData } from '../utilis/validate';
 import { apiLogin, apiRegister } from '../api/auth';
 
@@ -197,13 +197,19 @@ const Login = () => {
             </button>
 
             {/* TOGGLE SIGN IN / SIGN UP */}
+            {/* TOGGLE SIGN IN / SIGN UP */}
             <p className="text-center text-gray-600 mt-4">
               {isSignInForm ? (
                   <>
-                    Don't have an account?{' '}
-                    <Link to="/signup" className="text-blue-600 hover:underline">
+                    Don’t have an account?{' '}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/signup')}
+                        className="text-blue-600 hover:underline font-medium"
+                        role="link"
+                    >
                       Sign up
-                    </Link>
+                    </button>
                   </>
               ) : (
                   <>
@@ -211,14 +217,15 @@ const Login = () => {
                     <button
                         type="button"
                         onClick={() => navigate('/')}
-                        className="text-blue-600 hover:underline"
-                        disabled={isLoading}
+                        className="text-blue-600 hover:underline font-medium"
+                        role="link"
                     >
                       Log in
                     </button>
                   </>
               )}
             </p>
+
           </form>
         </div>
       </div>
