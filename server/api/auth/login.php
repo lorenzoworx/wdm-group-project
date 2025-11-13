@@ -18,7 +18,8 @@ if (!is_scalar($rawEmail) || !is_scalar($rawPass)) {
   exit;
 }
 
-$email = trim((string)$rawEmail);
+// Normalize email to lowercase to avoid case-sensitivity issues
+$email = strtolower(trim((string)$rawEmail));
 $pass  = (string)$rawPass;
 
 // Basic validation
@@ -28,12 +29,21 @@ if ($email === '' || $pass === '') {
   exit;
 }
 
-// Lookup user
-$st = $pdo->prepare('SELECT id, name, email, password_hash, role FROM users WHERE email = ?');
+// Lookup user (case-insensitive by using LOWER(email) = ?)
+$st = $pdo->prepare('SELECT id, name, email, password_hash, role FROM users WHERE LOWER(email) = ?');
 $st->execute([$email]);
 $u = $st->fetch();
 
-if (!$u || !password_verify($pass, $u['password_hash'])) {
+if (!$u) {
+  error_log('login.php: login failed - user not found for email: ' . $email);
+  http_response_code(401);
+  echo json_encode(['error' => 'Invalid credentials']);
+  exit;
+}
+
+if (!password_verify($pass, $u['password_hash'])) {
+  // Log failed verify attempt (masked)
+  error_log(sprintf('login.php: invalid password attempt for user_id=%d email=%s', $u['id'], $email));
   http_response_code(401);
   echo json_encode(['error' => 'Invalid credentials']);
   exit;

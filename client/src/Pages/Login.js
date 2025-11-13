@@ -203,7 +203,7 @@ const Login = () => {
                     Don't have an account?{' '}
                     <button
                         type="button"
-                        onClick={() => setIsSignInForm(false)}
+                        onClick={() => navigate('/signup')}
                         className="text-blue-600 hover:underline"
                         disabled={isLoading}
                     >
@@ -215,7 +215,7 @@ const Login = () => {
                     Already have an account?{' '}
                     <button
                         type="button"
-                        onClick={() => setIsSignInForm(true)}
+                        onClick={() => navigate('/')}
                         className="text-blue-600 hover:underline"
                         disabled={isLoading}
                     >
