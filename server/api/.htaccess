@@ -1,0 +1,15 @@
+# Ensure Authorization header is available to PHP (useful for many shared hosts)
+# Try both methods as hosts vary in which directive they support.
+
+# Method 1: pass through Authorization to HTTP_AUTHORIZATION env var
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Method 2: Set env if Authorization present (fallback)
+<IfModule mod_setenvif.c>
+  SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
+# Optional: force JSON responses to avoid accidental HTML from PHP errors (disabled by default)
+# Header set Content-Type "application/json; charset=utf-8"
+
