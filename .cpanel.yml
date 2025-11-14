@@ -1,14 +1,21 @@
 ---
 deployment:
   tasks:
-    - /bin/bash -lc '
-      set -e
-      DEPLOYPATH="/home/bxp7143/public_html"
-      # publish React build but keep API/resources
-      /usr/bin/rsync -a --delete \
-      --exclude "api/**" \
-      --exclude "resources/**" \
-      --exclude ".well-known/**" \
-      client/build/ "$DEPLOYPATH/"
-      echo "Deploy OK at $(date)"
-      '
+    # paths
+    - export REPO=/home/bxp7143/repositories/wdm-group-project
+    - export WEB=/home/bxp7143/public_html
+
+    # 1) React build -> web root (do not touch /api or /resources)
+    - /usr/bin/rsync -a --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
+
+    # 2) PHP API -> /api
+    - /usr/bin/rsync -a "$REPO/server/api/" "$WEB/api/"
+
+    # 3) (optional) resources folder
+    - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -a "$REPO/server/resources/" "$WEB/resources/"; fi'
+
+    # 4) Ensure SPA .htaccess exists (no heredoc; use printf)
+    - /bin/bash -lc 'if [ ! -f "$WEB/.htaccess" ]; then printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"; fi'
+
+    # marker
+    - /bin/echo "Deploy OK $(date)"
