@@ -65,14 +65,18 @@ const Announcements = () => {
    };
 
    const handleCreateAnnouncement = (e) => {
-     e.preventDefault();
-    const payload = {
-      title: newAnnouncement.title,
-      description: newAnnouncement.description,
-      department: newAnnouncement.department,
-      tags: newAnnouncement.tags || [],
-      isPinned: !!newAnnouncement.isPinned
-    };
+     console.debug('Announcements: handleCreateAnnouncement called', { newAnnouncement });
+     try { e.preventDefault(); } catch (err) { /* in case called not as event */ }
+     const payload = {
+       title: newAnnouncement.title,
+       description: newAnnouncement.description,
+       department: newAnnouncement.department,
+       tags: newAnnouncement.tags || [],
+       isPinned: !!newAnnouncement.isPinned
+     };
+
+    // log before calling network
+    console.debug('Announcements: createAnnouncement payload', payload);
 
     createAnnouncement(payload)
       .then((resp) => {
