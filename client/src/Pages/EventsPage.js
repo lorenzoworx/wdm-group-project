@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getEvents, createEvent, updateEvent, deleteEvent } from '../api/events';
 
 const initialNewEvent = {
   title: "",
@@ -18,6 +19,8 @@ const EventsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newEvent, setNewEvent] = useState(initialNewEvent);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
   const [userType, setUserType] = useState('');
 
   useEffect(() => {
@@ -28,19 +31,31 @@ const EventsPage = () => {
   }, []);
 
   const loadEvents = () => {
-    // Load events from localStorage first, then fall back to JSON file
-    const savedEvents = JSON.parse(localStorage.getItem('events') || 'null');
-    if (savedEvents) {
-      setData(savedEvents);
-    } else {
-      fetch("/data/eventsData.json")
-          .then((res) => res.json())
-          .then((json) => {
-            setData(json);
-            localStorage.setItem('events', JSON.stringify(json));
-          })
-          .catch(() => setData({ events: [] }));
-    }
+    // Network-first: try backend list, fall back to localStorage/public JSON
+    const tryLoad = async () => {
+      try {
+        const resp = await getEvents();
+        const list = resp?.events || [];
+        const payload = { events: list };
+        setData(payload);
+        localStorage.setItem('events', JSON.stringify(payload));
+      } catch (err) {
+        console.debug('getEvents failed, falling back to local/public data', err);
+        const savedEvents = JSON.parse(localStorage.getItem('events') || 'null');
+        if (savedEvents) {
+          setData(savedEvents);
+        } else {
+          fetch("/data/eventsData.json")
+            .then((res) => res.json())
+            .then((json) => {
+              setData(json);
+              localStorage.setItem('events', JSON.stringify(json));
+            })
+            .catch(() => setData({ events: [] }));
+        }
+      }
+    };
+    tryLoad();
     // Load registration status
     const savedRegistrations = JSON.parse(localStorage.getItem('eventRegistrations') || '{}');
     setRegistrationStatus(savedRegistrations);
@@ -48,21 +63,50 @@ const EventsPage = () => {
 
   if (!data) return <p className="text-center mt-10">Loading...</p>;
 
-  const handleCreateEvent = (e) => {
+  // Save handler: supports create and update with backend and local fallback
+  const handleSaveEvent = (e) => {
     e.preventDefault();
-    const newId = Math.max(0, ...data.events.map(e => e.id)) + 1;
-    const eventToAdd = {
-      ...newEvent,
-      id: newId,
-    };
+    const doSave = async () => {
+      if (isEditing && editingEventId != null) {
+        // try backend update
+        try {
+          const payload = { id: editingEventId, title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.time, endTime: newEvent.time, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
+          const resp = await updateEvent(payload);
+          const updated = resp.event;
+          const updatedEvents = data.events.map(ev => ev.id === editingEventId ? updated : ev);
+          const updatedData = { events: updatedEvents };
+          setData(updatedData);
+          localStorage.setItem('events', JSON.stringify(updatedData));
+          setIsEditing(false); setEditingEventId(null); setNewEvent(initialNewEvent); setShowCreateModal(false);
+          return;
+        } catch (err) {
+          console.debug('updateEvent failed, falling back to local update', err);
+          // fallthrough to local update below
+        }
+      }
 
-    const updatedData = {
-      events: [...data.events, eventToAdd]
+      // create new event
+      try {
+        const payload = { title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.time, endTime: newEvent.time, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
+        const resp = await createEvent(payload);
+        const serverEvent = resp.event;
+        const updatedData = { events: [...data.events, serverEvent] };
+        setData(updatedData);
+        localStorage.setItem('events', JSON.stringify(updatedData));
+        setNewEvent(initialNewEvent); setShowCreateModal(false);
+        return;
+      } catch (err) {
+        console.debug('createEvent failed, falling back to local create', err);
+        // local fallback
+        const newId = Math.max(0, ...data.events.map(ev => ev.id)) + 1;
+        const eventToAdd = { ...newEvent, id: newId };
+        const updatedData = { events: [...data.events, eventToAdd] };
+        setData(updatedData);
+        localStorage.setItem('events', JSON.stringify(updatedData));
+        setNewEvent(initialNewEvent); setShowCreateModal(false);
+      }
     };
-    setData(updatedData);
-    localStorage.setItem('events', JSON.stringify(updatedData));
-    setNewEvent(initialNewEvent);
-    setShowCreateModal(false);
+    doSave();
   };
 
   const handleRegister = (eventId) => {
@@ -71,6 +115,34 @@ const EventsPage = () => {
       setSelectedEvent(event);
       setShowRegistrationModal(true);
     }
+  };
+
+  const handleEdit = (event) => {
+    setIsEditing(true);
+    setEditingEventId(event.id);
+    setNewEvent({ title: event.title || '', date: event.eventDate || event.date || '', time: event.startTime || event.time || '', location: event.location || '', tag: event.category || event.tag || 'CS', description: event.description || '' });
+    setShowCreateModal(true);
+  };
+
+  const handleDelete = (eventId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this event?');
+    if (!confirmed) return;
+    const doDelete = async () => {
+      try {
+        await deleteEvent(eventId);
+        const updated = data.events.filter(ev => ev.id !== eventId);
+        const updatedData = { events: updated };
+        setData(updatedData);
+        localStorage.setItem('events', JSON.stringify(updatedData));
+      } catch (err) {
+        console.debug('deleteEvent failed, falling back to local delete', err);
+        const updated = data.events.filter(ev => ev.id !== eventId);
+        const updatedData = { events: updated };
+        setData(updatedData);
+        localStorage.setItem('events', JSON.stringify(updatedData));
+      }
+    };
+    doDelete();
   };
 
   const handleUnregister = (eventId) => {
@@ -292,12 +364,16 @@ const EventsPage = () => {
                             </button>
                         )
                     ) : (
-                        <></>
+                        // admin/instructor controls
+                        <div className="flex flex-col md:items-end items-start gap-2">
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEdit(event)} className="px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-100">Edit</button>
+                            <button onClick={() => handleDelete(event.id)} className="px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:text-red-700 border border-red-100">Delete</button>
+                          </div>
+                          <button className="text-gray-600 hover:text-gray-800 w-full md:w-auto">Add to calendar</button>
+                        </div>
                     )}
 
-                    <button className="text-gray-600 hover:text-gray-800 w-full md:w-auto">
-                      Add to calendar
-                    </button>
                   </div>
                 </div>
             ))}
@@ -309,7 +385,7 @@ const EventsPage = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-xl p-6 max-w-md w-full mx-2 max-h-[90vh] overflow-auto">
                 <h3 className="text-xl font-semibold mb-4">Create New Event</h3>
-                <form onSubmit={handleCreateEvent}>
+                <form onSubmit={handleSaveEvent}>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -421,7 +497,7 @@ const EventsPage = () => {
                         type="submit"
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
-                      Create Event
+                      {isEditing ? 'Save Changes' : 'Create Event'}
                     </button>
                   </div>
                 </form>
