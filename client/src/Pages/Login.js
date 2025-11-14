@@ -33,19 +33,19 @@ const Login = () => {
       // ---------- 1) VALIDATION ----------
       let validationMessage = null;
 
+      const fullName = name.current ? (name.current.value || '').trim() : '';
+      const typedEmail = email.current ? (email.current.value || '').trim() : '';
+      const typedPassword = password.current ? (password.current.value || '') : '';
+
       if (!isSignInForm) {
         // Sign up validation: name, email, proper password
-        validationMessage = checkValidData(
-            name.current?.value || '',
-            email.current.value,
-            password.current.value
-        );
+        validationMessage = checkValidData(fullName, typedEmail, typedPassword);
       } else {
         // Login validation: basic email/password presence
         const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-        if (!emailRegex.test(email.current.value)) {
+        if (!emailRegex.test(typedEmail)) {
           validationMessage = 'Email ID is not valid';
-        } else if (!password.current.value || password.current.value.length < 1) {
+        } else if (!typedPassword || typedPassword.length < 1) {
           validationMessage = 'Please enter your password';
         }
       }
@@ -56,12 +56,9 @@ const Login = () => {
         return;
       }
 
-      const typedEmail = email.current.value.trim();
-      const typedPassword = password.current.value;
-
       // ---------- 2) SIGN IN (PHP API) ----------
       if (isSignInForm) {
-        // IMPORTANT: apiLogin expects (email, password), not an object
+        // apiLogin(email, password)
         const { token, user } = await apiLogin(typedEmail, typedPassword);
 
         localStorage.setItem('userToken', token);
@@ -71,7 +68,7 @@ const Login = () => {
             JSON.stringify({
               name: user.name,
               email: user.email,
-              userType: user.role || 'student',
+              userType: user.role || 'student'
             })
         );
 
@@ -81,37 +78,33 @@ const Login = () => {
       }
 
       // ---------- 3) SIGN UP (PHP API) ----------
-      if (!isSignInForm) {
-        const fullName = (name.current.value || '').trim();
+      // apiRegister({ name, email, password })
+      const { token, user } = await apiRegister({
+        name: fullName,
+        email: typedEmail,
+        password: typedPassword
+      });
 
-        const { token, user } = await apiRegister({
-          name: fullName,
-          email: typedEmail,
-          password: typedPassword,
-        });
+      localStorage.setItem('userToken', token);
+      localStorage.setItem('userType', user.role || 'student');
+      localStorage.setItem(
+          'userData',
+          JSON.stringify({
+            name: user.name,
+            email: user.email,
+            userType: user.role || 'student'
+          })
+      );
 
-        localStorage.setItem('userToken', token);
-        localStorage.setItem('userType', user.role || 'student');
-        localStorage.setItem(
-            'userData',
-            JSON.stringify({
-              name: user.name,
-              email: user.email,
-              userType: user.role || 'student',
-            })
-        );
-
-        navigate('/dashboard/home');
-        setIsLoading(false);
-        return;
-      }
+      navigate('/dashboard/home');
+      setIsLoading(false);
+      return;
     } catch (err) {
-      // Try to show a helpful message if the API sent text/JSON
-      let msg = err?.message || 'Something went wrong';
+      let msg = err && err.message ? err.message : 'Something went wrong';
       try {
         const parsed = JSON.parse(msg);
-        if (parsed?.error) msg = parsed.error;
-      } catch {}
+        if (parsed && parsed.error) msg = parsed.error;
+      } catch (_ignore) {}
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -129,7 +122,6 @@ const Login = () => {
               {isSignInForm ? 'Log in' : 'Sign up'}
             </h1>
 
-            {/* SIGN UP: Show "Full Name" */}
             {!isSignInForm && (
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -146,7 +138,6 @@ const Login = () => {
                 </div>
             )}
 
-            {/* EMAIL FIELD */}
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 Email
@@ -161,7 +152,6 @@ const Login = () => {
               />
             </div>
 
-            {/* PASSWORD FIELD */}
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 Password
@@ -176,45 +166,40 @@ const Login = () => {
               />
             </div>
 
-            {/* ERROR MESSAGE */}
             {errorMessage && (
                 <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
                   {errorMessage}
                 </div>
             )}
 
-            {/* SUBMIT BUTTON */}
             <button
                 type="submit"
-                className={`w-full p-3 rounded-lg text-white font-medium ${
-                    isLoading
-                        ? 'bg-blue-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700'
-                } transition`}
+                className={
+                    'w-full p-3 rounded-lg text-white font-medium transition ' +
+                    (isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700')
+                }
                 disabled={isLoading}
             >
               {isLoading ? 'Please wait...' : isSignInForm ? 'Log in' : 'Sign up'}
             </button>
 
-            {/* TOGGLE SIGN IN / SIGN UP */}
             <p className="text-center text-gray-600 mt-4">
               {isSignInForm ? (
-                <>
-                  Don’t have an account?{' '}
-                  <Link to="/signup" className="text-blue-600 hover:underline font-medium">
-                    Sign up
-                  </Link>
-                </>
+                  <>
+                    Don’t have an account?{' '}
+                    <Link to="/signup" className="text-blue-600 hover:underline font-medium">
+                      Sign up
+                    </Link>
+                  </>
               ) : (
-                <>
-                  Already have an account?{' '}
-                  <Link to="/" className="text-blue-600 hover:underline font-medium">
-                    Log in
-                  </Link>
-                </>
+                  <>
+                    Already have an account?{' '}
+                    <Link to="/" className="text-blue-600 hover:underline font-medium">
+                      Log in
+                    </Link>
+                  </>
               )}
             </p>
-
           </form>
         </div>
       </div>
