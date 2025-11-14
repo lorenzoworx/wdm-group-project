@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import MessageBoard from "../MessageBoard";
 
 const StudentHomepage = () => {
   const [data, setData] = useState(null);
@@ -18,7 +17,6 @@ const StudentHomepage = () => {
     <div className="min-h-screen bg-gray-50"> {/* */}
       <div className="page-container py-6"> {/* */}
         {/* Welcome Section */}
-        <MessageBoard />
         <div className="mb-8"> {/* */}
           <h1 className="text-2xl font-semibold text-gray-900">Welcome back!</h1> {/* */}
           <p className="text-gray-600 mt-1">Here's what's happening on campus today.</p> {/* */}
