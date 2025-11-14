@@ -1,14 +1,14 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/bxp7143/public_html/
-
-    # Publish React build but KEEP api/resources/.well-known
-    - /bin/rsync -a --delete \
-      --exclude 'api/**' \
-      --exclude 'resources/**' \
-      --exclude '.well-known/**' \
-      client/build/ $DEPLOYPATH/
-
-    # (Optional) If your API lives in the repo at server/api, re-copy it each deploy:
-    # - /bin/rsync -a server/api/ $DEPLOYPATH/api/
+    - /bin/bash -lc '
+      set -e
+      DEPLOYPATH="/home/bxp7143/public_html"
+      # publish React build but keep API/resources
+      /usr/bin/rsync -a --delete \
+      --exclude "api/**" \
+      --exclude "resources/**" \
+      --exclude ".well-known/**" \
+      client/build/ "$DEPLOYPATH/"
+      echo "Deploy OK at $(date)"
+      '
