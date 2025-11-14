@@ -4,7 +4,8 @@ import { getEvents, createEvent, updateEvent, deleteEvent } from '../api/events'
 const initialNewEvent = {
   title: "",
   date: "",
-  time: "",
+  startTime: "",
+  endTime: "",
   location: "",
   tag: "CS",
   description: ""
@@ -70,7 +71,7 @@ const EventsPage = () => {
       if (isEditing && editingEventId != null) {
         // try backend update
         try {
-          const payload = { id: editingEventId, title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.time, endTime: newEvent.time, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
+          const payload = { id: editingEventId, title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.startTime, endTime: newEvent.endTime, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
           const resp = await updateEvent(payload);
           const updated = resp.event;
           const updatedEvents = data.events.map(ev => ev.id === editingEventId ? updated : ev);
@@ -87,7 +88,7 @@ const EventsPage = () => {
 
       // create new event
       try {
-        const payload = { title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.time, endTime: newEvent.time, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
+        const payload = { title: newEvent.title, eventDate: newEvent.date, startTime: newEvent.startTime, endTime: newEvent.endTime, location: newEvent.location, category: newEvent.tag, description: newEvent.description };
         const resp = await createEvent(payload);
         const serverEvent = resp.event;
         const updatedData = { events: [...data.events, serverEvent] };
@@ -120,7 +121,7 @@ const EventsPage = () => {
   const handleEdit = (event) => {
     setIsEditing(true);
     setEditingEventId(event.id);
-    setNewEvent({ title: event.title || '', date: event.eventDate || event.date || '', time: event.startTime || event.time || '', location: event.location || '', tag: event.category || event.tag || 'CS', description: event.description || '' });
+    setNewEvent({ title: event.title || '', date: event.eventDate || event.event_date || event.date || '', startTime: event.startTime || event.start_time || event.time || '', endTime: event.endTime || event.end_time || event.time || '', location: event.location || '', tag: event.category || event.tag || 'CS', description: event.description || '' });
     setShowCreateModal(true);
   };
 
@@ -315,7 +316,7 @@ const EventsPage = () => {
                         />
                       </svg>
                       <span className="leading-5">
-                    {event.date} • {event.time}
+                    {event.event_date || event.eventDate || event.date} • {((event.start_time || event.startTime) ? (event.start_time || event.startTime) : (event.time || ''))}{((event.end_time || event.endTime) ? ` - ${event.end_time || event.endTime}` : '')}
                   </span>
                     </div>
 
@@ -410,29 +411,35 @@ const EventsPage = () => {
                         </label>
                         <input
                             required
-                            type="text"
+                            type="date"
                             value={newEvent.date}
                             onChange={(e) =>
                                 setNewEvent({ ...newEvent, date: e.target.value })
                             }
                             className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., Sep 25"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Time
-                        </label>
-                        <input
-                            required
-                            type="text"
-                            value={newEvent.time}
-                            onChange={(e) =>
-                                setNewEvent({ ...newEvent, time: e.target.value })
-                            }
-                            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., 2-4 PM"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                          <input
+                              required
+                              type="time"
+                              value={newEvent.startTime}
+                              onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                          <input
+                              required
+                              type="time"
+                              value={newEvent.endTime}
+                              onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -516,8 +523,8 @@ const EventsPage = () => {
                 <div className="text-gray-600 mb-6">
                   <p className="mb-2">Event Details:</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Date: {selectedEvent.date}</li>
-                    <li>Time: {selectedEvent.time}</li>
+                    <li>Date: {selectedEvent.event_date || selectedEvent.eventDate || selectedEvent.date}</li>
+                    <li>Time: {selectedEvent.start_time || selectedEvent.startTime || selectedEvent.time}{(selectedEvent.end_time || selectedEvent.endTime || selectedEvent.time) ? ` - ${selectedEvent.end_time || selectedEvent.endTime || selectedEvent.time}` : ''}</li>
                     <li>Location: {selectedEvent.location}</li>
                     {selectedEvent.description && (
                         <li className="mt-2 text-sm">{selectedEvent.description}</li>

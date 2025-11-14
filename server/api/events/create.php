@@ -72,8 +72,13 @@ try {
   $st->execute([$title, $eventDate, $start, $end, $location, $category, $description, (int)$user['id']]);
   $id = (int)$pdo->lastInsertId();
 } catch (PDOException $e) {
+  // log diagnostics
   error_log('events/create.php DB error: ' . $e->getMessage());
-  http_response_code(500); echo json_encode(['error' => 'Database error']); exit;
+  error_log('events/create.php payload: ' . substr((string)$raw,0,1000));
+  http_response_code(500);
+  // Return details for debugging (remove in production)
+  echo json_encode(['error' => 'Database error', 'details' => $e->getMessage()]);
+  exit;
 }
 
 // 7) OK
