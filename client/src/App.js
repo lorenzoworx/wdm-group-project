@@ -6,8 +6,7 @@ import MessageBoard from './MessageBoard';
 function App() {
     return (
         <div>
-            <Body />
-            <MessageBoard />   {/* <-- show the Firestore-backed UI */}
+            <Body />  {/* <-- show the Firestore-backed UI */}
             <ChatbotFloating />
         </div>
     );
