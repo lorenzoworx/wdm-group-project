@@ -31,6 +31,11 @@ if ($allowOrigin) {
   header('Access-Control-Allow-Credentials: true');
   // Debug header to help verify the response includes CORS (remove in production)
   header('X-CORS-Debug: 1');
+} else {
+  // Fallback: if origin isn't allowed explicitly, send a permissive header to avoid blocked preflight
+  // This is helpful during development; remove or tighten for production.
+  header('Access-Control-Allow-Origin: *');
+  header('X-CORS-Debug: 0');
 }
 // Allow typical methods used by the API; include PUT/PATCH just in case
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');

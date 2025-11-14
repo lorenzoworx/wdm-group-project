@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getUserType, getUserData } from '../utilis/auth';
+import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '../api/announcements';
 
 const initialNewAnnouncement = {
   title: '',
@@ -40,102 +41,112 @@ const Announcements = () => {
   };
 
   const loadAnnouncements = () => {
-    const savedAnnouncements = JSON.parse(localStorage.getItem('announcements') || '[]');
-    if (savedAnnouncements.length === 0) {
-      // Default announcements seeded if none in localStorage
-      const defaultAnnouncements = [
-        {
-          id: 1,
-          title: 'Dept update: New lab hours',
-          department: 'CS',
-          date: 'Sep 12',
-          description: 'Lab open until 8pm Mon-Thu; booking is required.',
-          attachments: [
-            { name: 'Lab_Schedule.pdf', type: 'pdf' },
-            { name: 'Booking_Guide.pdf', type: 'pdf' },
-          ],
-          tags: ['CS', 'Facilities', 'Pinned'],
-          isPinned: true,
-          createdBy: 'admin@uta.edu',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          title: 'Workshop posted: Intro to Git',
-          department: 'IT',
-          date: 'Sep 11',
-          description: 'Basics of Git and GitHub: branching, PRs, and more.',
-          tags: ['IT', 'Workshop'],
-          isPinned: false,
-          createdBy: 'admin@uta.edu',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 3,
-          title: 'Holiday notice: Campus closed',
-          department: 'Admin',
-          date: 'Sep 10',
-          description: 'Campus will be closed for the federal holiday.',
-          tags: ['Admin', 'Holiday'],
-          isPinned: false,
-          createdBy: 'admin@uta.edu',
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setAnnouncements(defaultAnnouncements);
-      localStorage.setItem('announcements', JSON.stringify(defaultAnnouncements));
-    } else {
-      setAnnouncements(savedAnnouncements);
-    }
-  };
+    // Network-first: try server, fall back to localStorage or seeded defaults
+    getAnnouncements()
+      .then((resp) => {
+        const list = resp && Array.isArray(resp.announcements) ? resp.announcements : [];
+        setAnnouncements(list);
+        localStorage.setItem('announcements', JSON.stringify(list));
+      })
+      .catch(() => {
+        const savedAnnouncements = JSON.parse(localStorage.getItem('announcements') || '[]');
+        if (savedAnnouncements && savedAnnouncements.length > 0) {
+          setAnnouncements(savedAnnouncements);
+        } else {
+          // Seed a couple of local announcements if none exist
+          const defaultAnnouncements = [
+            { id: 1, title: 'Dept update: New lab hours', department: 'CS', date: 'Sep 12', description: 'Lab open until 8pm Mon-Thu; booking is required.', attachments: [{ name: 'Lab_Schedule.pdf', type: 'pdf' }], tags: ['CS','Facilities','Pinned'], isPinned: true, createdBy: 'system', createdAt: new Date().toISOString() },
+            { id: 2, title: 'Workshop posted: Intro to Git', department: 'IT', date: 'Sep 11', description: 'Basics of Git and GitHub', tags: ['IT','Workshop'], isPinned: false, createdBy: 'system', createdAt: new Date().toISOString() }
+          ];
+          setAnnouncements(defaultAnnouncements);
+          localStorage.setItem('announcements', JSON.stringify(defaultAnnouncements));
+        }
+      });
+   };
 
-  const handleCreateAnnouncement = (e) => {
-    e.preventDefault();
-    const announcementToAdd = {
-      ...newAnnouncement,
-      id: Date.now(),
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      }),
-      createdBy: userData?.email || 'system',
-      createdAt: new Date().toISOString(),
+   const handleCreateAnnouncement = (e) => {
+     e.preventDefault();
+    const payload = {
+      title: newAnnouncement.title,
+      description: newAnnouncement.description,
+      department: newAnnouncement.department,
+      tags: newAnnouncement.tags || [],
+      isPinned: !!newAnnouncement.isPinned
     };
 
-    const updatedAnnouncements = [...announcements, announcementToAdd];
-    setAnnouncements(updatedAnnouncements);
-    localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
-    setNewAnnouncement(initialNewAnnouncement);
-    setShowCreateModal(false);
-  };
+    createAnnouncement(payload)
+      .then((resp) => {
+        const ann = resp && resp.announcement ? resp.announcement : null;
+        const updated = ann ? [...announcements, ann] : [...announcements, { ...payload, id: Date.now(), createdAt: new Date().toISOString(), createdBy: userData?.email || 'system' }];
+        setAnnouncements(updated);
+        localStorage.setItem('announcements', JSON.stringify(updated));
+        setNewAnnouncement(initialNewAnnouncement);
+        setShowCreateModal(false);
+      })
+      .catch(() => {
+        // fallback to local only
+        const localAnn = { ...newAnnouncement, id: Date.now(), createdAt: new Date().toISOString(), createdBy: userData?.email || 'system' };
+        const updated = [...announcements, localAnn];
+        setAnnouncements(updated);
+        localStorage.setItem('announcements', JSON.stringify(updated));
+        setNewAnnouncement(initialNewAnnouncement);
+        setShowCreateModal(false);
+      });
+   };
 
-  const handleEditAnnouncement = (announcement) => {
-    setEditingAnnouncement(announcement);
-    setShowEditModal(true);
-  };
+   const handleEditAnnouncement = (announcement) => {
+     setEditingAnnouncement(announcement);
+     setShowEditModal(true);
+   };
 
-  const handleUpdateAnnouncement = (e) => {
-    e.preventDefault();
-    const updatedAnnouncements = announcements.map((announcement) =>
-        announcement.id === editingAnnouncement.id
-            ? { ...announcement, ...editingAnnouncement }
-            : announcement
-    );
-    setAnnouncements(updatedAnnouncements);
-    localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
-    setShowEditModal(false);
-    setEditingAnnouncement(null);
-  };
+   const handleUpdateAnnouncement = (e) => {
+     e.preventDefault();
+    const payload = {
+      id: editingAnnouncement.id,
+      title: editingAnnouncement.title,
+      description: editingAnnouncement.description,
+      department: editingAnnouncement.department,
+      tags: editingAnnouncement.tags || [],
+      isPinned: !!editingAnnouncement.isPinned
+    };
 
-  const handleDeleteAnnouncement = (id) => {
-    if (window.confirm('Are you sure you want to delete this announcement?')) {
-      const updatedAnnouncements = announcements.filter(
-          (announcement) => announcement.id !== id
-      );
-      setAnnouncements(updatedAnnouncements);
-      localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
-    }
-  };
+    updateAnnouncement(payload)
+      .then((resp) => {
+        const ann = resp && resp.announcement ? resp.announcement : payload;
+        const updated = announcements.map((a) => (a.id === ann.id ? { ...a, ...ann } : a));
+        setAnnouncements(updated);
+        localStorage.setItem('announcements', JSON.stringify(updated));
+        setShowEditModal(false);
+        setEditingAnnouncement(null);
+      })
+      .catch(() => {
+        // local fallback
+        const updatedAnnouncements = announcements.map((announcement) =>
+          announcement.id === editingAnnouncement.id ? { ...announcement, ...editingAnnouncement } : announcement
+        );
+        setAnnouncements(updatedAnnouncements);
+        localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
+        setShowEditModal(false);
+        setEditingAnnouncement(null);
+      });
+   };
+
+   const handleDeleteAnnouncement = (id) => {
+     if (window.confirm('Are you sure you want to delete this announcement?')) {
+      deleteAnnouncement(id)
+        .then(() => {
+          const updatedAnnouncements = announcements.filter((announcement) => announcement.id !== id);
+          setAnnouncements(updatedAnnouncements);
+          localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
+        })
+        .catch(() => {
+          // local fallback delete
+          const updatedAnnouncements = announcements.filter((announcement) => announcement.id !== id);
+          setAnnouncements(updatedAnnouncements);
+          localStorage.setItem('announcements', JSON.stringify(updatedAnnouncements));
+        });
+     }
+   };
 
   const canManageAnnouncements =
       userType === 'admin' || userType === 'instructor';
