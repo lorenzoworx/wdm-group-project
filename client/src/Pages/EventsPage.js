@@ -65,7 +65,10 @@ const EventsPage = () => {
     setRegistrationStatus(savedRegs);
   };
 
-  if (!data) return <p className="text-center mt-10">Loading...</p>;
+  if (!data) {
+    return React.createElement('p', { className: 'text-center mt-10' }, 'Loading...');
+  }
+
 
   // Create / Update (no async/await so cPanel's linter stays happy)
   const handleSaveEvent = (e) => {
