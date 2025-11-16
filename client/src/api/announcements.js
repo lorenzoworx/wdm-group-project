@@ -49,82 +49,62 @@ export function getAnnouncements() {
 }
 
 export function createAnnouncement(payload) {
-  var rawToken = localStorage.getItem('userToken');
-  if (!rawToken) return Promise.reject(new Error('Not signed in'));
-
+  var rawToken = localStorage.getItem('userToken') || '';
   var token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
-  if (!isValidServerToken(token)) {
-    return Promise.reject(new Error('Invalid token. Please sign out and sign in again.'));
-  }
 
-  var headers = Object.assign(
-      { 'Content-Type': 'application/json', Accept: 'application/json' },
-      authHeader()
-  );
-  var payloadWithToken = Object.assign({}, payload, { token: token });
+  // Build headers with token if we have one; otherwise send without and let server 401
+  var headers = Object.assign({ 'Content-Type': 'application/json', Accept: 'application/json' }, {});
+  if (token) headers = Object.assign(headers, { Authorization: 'Bearer ' + token, 'X-Auth-Token': token });
+
+  var body = Object.assign({}, payload, token ? { token: token } : {});
 
   return fetch(BASE + '/api/announcements/create.php', {
     method: 'POST',
     headers: headers,
-    body: JSON.stringify(payloadWithToken)
+    body: JSON.stringify(body)
   }).then(function (resp) {
-    return parseJson(resp).then(function (body) {
-      if (!resp.ok) throw new Error(body.error || ('HTTP ' + resp.status));
-      return body; // { announcement: {...} }
+    return parseJson(resp).then(function (parsed) {
+      if (!resp.ok) throw new Error(parsed.error || ('HTTP ' + resp.status));
+      return parsed; // { announcement: {...} }
     });
   });
 }
 
 export function updateAnnouncement(payload) {
-  var rawToken = localStorage.getItem('userToken');
-  if (!rawToken) return Promise.reject(new Error('Not signed in'));
-
+  var rawToken = localStorage.getItem('userToken') || '';
   var token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
-  if (!isValidServerToken(token)) {
-    return Promise.reject(new Error('Invalid token. Please sign out and sign in again.'));
-  }
-
-  var headers = Object.assign(
-      { 'Content-Type': 'application/json', Accept: 'application/json' },
-      authHeader()
-  );
-  var payloadWithToken = Object.assign({}, payload, { token: token });
+  var headers = Object.assign({ 'Content-Type': 'application/json', Accept: 'application/json' }, {});
+  if (token) headers = Object.assign(headers, { Authorization: 'Bearer ' + token, 'X-Auth-Token': token });
+  var body = Object.assign({}, payload, token ? { token: token } : {});
 
   return fetch(BASE + '/api/announcements/update.php', {
     method: 'POST',
     headers: headers,
-    body: JSON.stringify(payloadWithToken)
+    body: JSON.stringify(body)
   }).then(function (resp) {
-    return parseJson(resp).then(function (body) {
-      if (!resp.ok) throw new Error(body.error || ('HTTP ' + resp.status));
-      return body;
+    return parseJson(resp).then(function (parsed) {
+      if (!resp.ok) throw new Error(parsed.error || ('HTTP ' + resp.status));
+      return parsed;
     });
   });
 }
 
 export function deleteAnnouncement(id) {
-  var rawToken = localStorage.getItem('userToken');
-  if (!rawToken) return Promise.reject(new Error('Not signed in'));
-
+  var rawToken = localStorage.getItem('userToken') || '';
   var token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
-  if (!isValidServerToken(token)) {
-    return Promise.reject(new Error('Invalid token. Please sign out and sign in again.'));
-  }
-
-  var headers = Object.assign(
-      { 'Content-Type': 'application/json', Accept: 'application/json' },
-      authHeader()
-  );
-  var payload = { id: id, token: token };
+  var headers = Object.assign({ 'Content-Type': 'application/json', Accept: 'application/json' }, {});
+  if (token) headers = Object.assign(headers, { Authorization: 'Bearer ' + token, 'X-Auth-Token': token });
+  var body = { id: id };
+  if (token) body.token = token;
 
   return fetch(BASE + '/api/announcements/delete.php', {
     method: 'POST',
     headers: headers,
-    body: JSON.stringify(payload)
+    body: JSON.stringify(body)
   }).then(function (resp) {
-    return parseJson(resp).then(function (body) {
-      if (!resp.ok) throw new Error(body.error || ('HTTP ' + resp.status));
-      return body;
+    return parseJson(resp).then(function (parsed) {
+      if (!resp.ok) throw new Error(parsed.error || ('HTTP ' + resp.status));
+      return parsed;
     });
   });
 }
