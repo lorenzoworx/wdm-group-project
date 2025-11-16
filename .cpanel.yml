@@ -5,17 +5,42 @@ deployment:
     - export REPO=/home/bxp7143/repositories/wdm-group-project
     - export WEB=/home/bxp7143/public_html
 
+    # debug: show header and timestamps
+    - /bin/echo "=== Deploy started: $(date) ==="
+    - /bin/echo "REPO=$REPO"
+    - /bin/echo "WEB=$WEB"
+
+    # show repository summary for debugging
+    - /bin/echo "-- ls -la $REPO --"
+    - /bin/ls -la "$REPO" || true
+    - /bin/echo "-- du -sh $REPO (top) --"
+    - /usr/bin/du -sh "$REPO" || true
+
+    # If build missing, try to build on server (only if node is available)
+    - /bin/echo "-- ensure client/build exists or attempt server-side build --"
+    - /bin/bash -lc 'if [ -d "$REPO/client/build" ]; then echo "client/build exists"; else echo "client/build missing"; if command -v node >/dev/null 2>&1; then echo "node found: $(node -v), running npm ci && npm run build"; cd "$REPO/client" && npm ci --production=false && npm run build; else echo "node not found on server; cannot build. Please run build locally and commit client/build to repo or install node on server."; fi; fi'
+
     # 1) React build -> web root (do not touch /api or /resources)
-    - /usr/bin/rsync -a --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
+    - /bin/echo "-- rsync client/build -> web (verbose) --"
+    - /usr/bin/rsync -av --progress --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
 
     # 2) PHP API -> /api
-    - /usr/bin/rsync -a "$REPO/server/api/" "$WEB/api/"
+    - /bin/echo "-- rsync server/api -> $WEB/api (verbose) --"
+    - /usr/bin/rsync -av --progress "$REPO/server/api/" "$WEB/api/"
 
     # 3) (optional) resources folder
-    - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -a "$REPO/server/resources/" "$WEB/resources/"; fi'
+    - /bin/echo "-- rsync server/resources (if present) --"
+    - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -av --progress "$REPO/server/resources/" "$WEB/resources/"; else echo "no resources dir"; fi'
 
     # 4) Ensure SPA .htaccess exists (no heredoc; use printf)
-    - /bin/bash -lc 'if [ ! -f "$WEB/.htaccess" ]; then printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"; fi'
+    - /bin/echo "-- ensure .htaccess --"
+    - /bin/bash -lc 'if [ ! -f "$WEB/.htaccess" ]; then printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"; else echo ".htaccess exists"; fi'
+
+    # debug: list web dir summary
+    - /bin/echo "-- ls -la $WEB (top) --"
+    - /bin/ls -la "$WEB" || true
+    - /bin/echo "-- du -sh $WEB (top) --"
+    - /usr/bin/du -sh "$WEB" || true
 
     # marker
     - /bin/echo "Deploy OK $(date)"
