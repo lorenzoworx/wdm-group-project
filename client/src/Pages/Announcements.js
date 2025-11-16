@@ -307,14 +307,41 @@ const Announcements = () => {
 
               <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
                 {canManageAnnouncements && (
-                    <button
-                        onClick={function () {
-                          setShowCreateModal(true);
+                    <>
+                      <button
+                          onClick={function () {
+                            setShowCreateModal(true);
+                          }}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
+                      >
+                        Create Announcement
+                      </button>
+
+                      {/* Admin-only debug button to test API from deployed UI (temporary) */}
+                      <button
+                        onClick={async function () {
+                          try {
+                            setDebugMsg('Testing API...');
+                            const payload = {
+                              title: 'Debug test',
+                              description: 'Debug test from UI button',
+                              department: 'CS',
+                              tags: ['debug'],
+                              isPinned: false,
+                            };
+                            const res = await createAnnouncement(payload);
+                            try { setDebugMsg('Debug success: ' + (res && res.announcement && 'id=' + res.announcement.id)); } catch (e) { setDebugMsg('Debug success'); }
+                          } catch (err) {
+                            try { setDebugMsg('Debug error: ' + (err && err.message ? err.message : String(err))); } catch (e) { console.error(err); }
+                            console.error('Debug test API error', err);
+                          }
                         }}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
-                    >
-                      Create Announcement
-                    </button>
+                        className="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors w-full sm:w-auto"
+                        title="Send a test announcement via the API and show result (admin-only)"
+                      >
+                        Debug: Test API
+                      </button>
+                    </>
                 )}
 
                 <div className="relative w-full sm:w-auto sm:min-w-[260px]">
