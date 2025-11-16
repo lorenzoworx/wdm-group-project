@@ -2,7 +2,8 @@
 // Announcements page (compat version for older linters)
 
 import React, { useState, useEffect } from 'react';
-import { getUserType, getUserData } from '../utilis/auth';
+import { useNavigate } from 'react-router-dom';
+import { getUserType, getUserData, logoutUser } from '../utilis/auth';
 import {
   getAnnouncements,
   createAnnouncement,
@@ -29,11 +30,15 @@ const Announcements = () => {
   const [newAnnouncement, setNewAnnouncement] = useState(initialNewAnnouncement);
   const [userType, setUserType] = useState('');
   const [userData, setUserDataState] = useState(null);
+  // visible debug message so deployed builds show activity without relying on console
+  const [debugMsg, setDebugMsg] = useState('');
 
   useEffect(function () {
     loadAnnouncements();
     loadUserData();
   }, []);
+
+  const navigate = useNavigate();
 
   function loadUserData() {
     const user = getUserData();
@@ -109,6 +114,8 @@ const Announcements = () => {
       tags: newAnnouncement.tags || [],
       isPinned: !!newAnnouncement.isPinned,
     };
+    // show visible feedback immediately
+    try { setDebugMsg('Creating announcement...'); } catch (er) {}
 
     createAnnouncement(payload)
         .then(function (resp) {
@@ -134,8 +141,22 @@ const Announcements = () => {
           } catch (e) {}
           setNewAnnouncement(initialNewAnnouncement);
           setShowCreateModal(false);
+          try { setDebugMsg('Announcement created'); } catch (er) {}
         })
-        .catch(function () {
+        .catch(function (err) {
+          // If the backend reports an invalid token, force local logout so users re-authenticate
+          var msg = err && err.message ? err.message : String(err || 'unknown');
+          console.error('create announcement error', msg, err);
+          if (msg.toLowerCase().indexOf('invalid token') !== -1 || msg.toLowerCase().indexOf('not signed in') !== -1) {
+            try { logoutUser(); } catch (e) {}
+            try { setDebugMsg('Session expired or invalid token. Please sign out and sign in again.'); } catch (e) {}
+            // Close modal and do not persist fallback silently so user knows the create did not reach the server
+            setShowCreateModal(false);
+            try { navigate('/login'); } catch (e) {}
+            return;
+          }
+
+          // fallback: persist locally when backend is unreachable or other errors occur
           var fallback = {
             id: Date.now(),
             title: newAnnouncement.title,
@@ -154,6 +175,7 @@ const Announcements = () => {
           } catch (e) {}
           setNewAnnouncement(initialNewAnnouncement);
           setShowCreateModal(false);
+          try { setDebugMsg('Create failed: ' + (msg || 'unknown')); } catch (er) {}
         });
   }
 
@@ -189,7 +211,18 @@ const Announcements = () => {
           setShowEditModal(false);
           setEditingAnnouncement(null);
         })
-        .catch(function () {
+        .catch(function (err) {
+          var msg = err && err.message ? err.message : String(err || 'unknown');
+          console.error('update announcement error', msg, err);
+          if (msg.toLowerCase().indexOf('invalid token') !== -1 || msg.toLowerCase().indexOf('not signed in') !== -1) {
+            try { logoutUser(); } catch (e) {}
+            try { setDebugMsg('Session expired or invalid token. Please sign out and sign in again.'); } catch (e) {}
+            setShowEditModal(false);
+            setEditingAnnouncement(null);
+            try { navigate('/login'); } catch (e) {}
+            return;
+          }
+
           var updated = announcements.map(function (a) {
             return a.id === editingAnnouncement.id
                 ? Object.assign({}, a, editingAnnouncement)
@@ -218,7 +251,16 @@ const Announcements = () => {
             localStorage.setItem('announcements', JSON.stringify(updated));
           } catch (e) {}
         })
-        .catch(function () {
+        .catch(function (err) {
+          var msg = err && err.message ? err.message : String(err || 'unknown');
+          console.error('delete announcement error', msg, err);
+          if (msg.toLowerCase().indexOf('invalid token') !== -1 || msg.toLowerCase().indexOf('not signed in') !== -1) {
+            try { logoutUser(); } catch (e) {}
+            try { setDebugMsg('Session expired or invalid token. Please sign out and sign in again.'); } catch (e) {}
+            try { navigate('/login'); } catch (e) {}
+            return;
+          }
+
           var updated = announcements.filter(function (a) {
             return a.id !== id;
           });
@@ -249,6 +291,12 @@ const Announcements = () => {
 
   return (
       <div className="min-h-screen bg-gray-50">
+        {/* visible debug banner */}
+        {debugMsg ? (
+          <div className="fixed top-4 right-4 bg-yellow-100 text-yellow-900 px-4 py-2 rounded shadow z-50">
+            {debugMsg}
+          </div>
+        ) : null}
         <div className="max-w-5xl mx-auto p-6 w-full">
           {/* Header & controls */}
           <div className="mb-6 flex flex-col gap-4">
