@@ -1,21 +1,27 @@
----
 deployment:
   tasks:
-    # paths
+    # Paths
     - export REPO=/home/bxp7143/repositories/wdm-group-project
     - export WEB=/home/bxp7143/public_html
 
-    # 1) React build -> web root (do not touch /api or /resources)
-    - /usr/bin/rsync -a --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
+    # Sanity: fail fast if React build is missing
+    - /usr/bin/test -f "$REPO/client/build/index.html" || (echo "ERROR: client/build missing. Run npm run build & commit it." && exit 1)
 
-    # 2) PHP API -> /api
-    - /usr/bin/rsync -a "$REPO/server/api/" "$WEB/api/"
+    # Ensure target dirs exist
+    - /bin/mkdir -p "$WEB" "$WEB/api" "$WEB/resources"
 
-    # 3) (optional) resources folder
-    - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -a "$REPO/server/resources/" "$WEB/resources/"; fi'
+    # 1) Frontend -> web root
+    # Protect /api and /resources from deletions while still cleaning old SPA files
+    - /usr/bin/rsync -a --delete --filter='protect api/' --filter='protect resources/' "$REPO/client/build/" "$WEB/"
 
-    # 4) Ensure SPA .htaccess exists (no heredoc; use printf)
-    - /bin/bash -lc 'if [ ! -f "$WEB/.htaccess" ]; then printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"; fi'
+    # 2) PHP API -> /api  (delete removed endpoints)
+    - /usr/bin/rsync -a --delete "$REPO/server/api/" "$WEB/api/"
 
-    # marker
-    - /bin/echo "Deploy OK $(date)"
+    # 3) Optional resources -> /resources (ignore if folder not present)
+    - /usr/bin/rsync -a --delete "$REPO/server/resources/" "$WEB/resources/" || true
+
+    # 4) Ensure SPA .htaccess exists (only write if missing)
+    - /usr/bin/test -f "$WEB/.htaccess" || printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"
+
+    # Marker you can load in the browser to confirm the deploy finished
+    - /bin/date -u > "$WEB/DEPLOY.txt"
