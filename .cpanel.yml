@@ -1,27 +1,60 @@
+---
 deployment:
   tasks:
-    # Paths
-    - export REPO=/home/bxp7143/repositories/wdm-group-project
-    - export WEB=/home/bxp7143/public_html
+    - |
+      /bin/bash -lc '
+        set -e
 
-    # Sanity: fail fast if React build is missing
-    - /usr/bin/test -f "$REPO/client/build/index.html" || (echo "ERROR: client/build missing. Run npm run build & commit it." && exit 1)
+        REPO="/home/bxp7143/repositories/wdm-group-project"
+        WEB="/home/bxp7143/public_html"
+        LOG="$WEB/deploy.log"
 
-    # Ensure target dirs exist
-    - /bin/mkdir -p "$WEB" "$WEB/api" "$WEB/resources"
+        # Log to file and cPanel
+        exec > >(tee -a "$LOG") 2>&1
+        echo "=== Deploy start $(date -u +"%F %T UTC") ==="
 
-    # 1) Frontend -> web root
-    # Protect /api and /resources from deletions while still cleaning old SPA files
-    - /usr/bin/rsync -a --delete --filter='protect api/' --filter='protect resources/' "$REPO/client/build/" "$WEB/"
+        # Ensure targets exist
+        mkdir -p "$WEB" "$WEB/api" "$WEB/resources"
 
-    # 2) PHP API -> /api  (delete removed endpoints)
-    - /usr/bin/rsync -a --delete "$REPO/server/api/" "$WEB/api/"
+        # 1) React build -> web root (protect api/ & resources/)
+        if [ -f "$REPO/client/build/index.html" ]; then
+          echo "[1/5] Sync SPA build to $WEB"
+          rsync -a --delete --filter "P api/" --filter "P resources/" \
+            "$REPO/client/build/" "$WEB/"
+        else
+          echo "[1/5] WARNING: build not found; skipping SPA sync"
+        fi
 
-    # 3) Optional resources -> /resources (ignore if folder not present)
-    - /usr/bin/rsync -a --delete "$REPO/server/resources/" "$WEB/resources/" || true
+        # 2) PHP API -> /api
+        echo "[2/5] Sync API to $WEB/api"
+        rsync -a --delete "$REPO/server/api/" "$WEB/api/"
 
-    # 4) Ensure SPA .htaccess exists (only write if missing)
-    - /usr/bin/test -f "$WEB/.htaccess" || printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"
+        # 3) Optional resources -> /resources
+        if [ -d "$REPO/server/resources" ]; then
+          echo "[3/5] Sync resources to $WEB/resources"
+          rsync -a --delete "$REPO/server/resources/" "$WEB/resources/"
+        else
+          echo "[3/5] No server/resources directory; skipping."
+        fi
 
-    # Marker you can load in the browser to confirm the deploy finished
-    - /bin/date -u > "$WEB/DEPLOY.txt"
+        # 4) Ensure SPA .htaccess
+        if [ ! -f "$WEB/.htaccess" ]; then
+          echo "[4/5] Create $WEB/.htaccess for SPA routing"
+          printf "%s\n" \
+            "<IfModule mod_rewrite.c>" \
+            "RewriteEngine On" \
+            "RewriteBase /" \
+            "RewriteRule ^api/ - [L]" \
+            "RewriteCond %{REQUEST_FILENAME} -f [OR]" \
+            "RewriteCond %{REQUEST_FILENAME} -d" \
+            "RewriteRule ^ - [L]" \
+            "RewriteRule . /index.html [L]" \
+            "</IfModule>" > "$WEB/.htaccess"
+        else
+          echo "[4/5] .htaccess already present"
+        fi
+
+        # 5) Marker
+        date -u +"%F %T UTC" > "$WEB/DEPLOY.txt"
+        echo "=== Deploy OK $(cat "$WEB/DEPLOY.txt") ==="
+      '
