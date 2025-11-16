@@ -1,36 +1,45 @@
 // client/src/api/announcements.js
 
-// We'll implement our own small helpers (keep in-file to avoid adding new shared files)
 function determineBase() {
-  if (process.env.REACT_APP_API_BASE) return process.env.REACT_APP_API_BASE;
+  if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE) {
+    return process.env.REACT_APP_API_BASE;
+  }
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
+    var host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1') return '';
   }
   return 'https://bxp7143.uta.cloud';
 }
-const BASE = determineBase();
+var BASE = determineBase();
 
-// helper to validate server-style tokens (64 hex)
+// 64-hex token validator (server style)
 function isValidServerToken(t) {
   if (!t) return false;
   return /^[A-Fa-f0-9]{64}$/.test(String(t).trim().replace(/^"|"$/g, ''));
 }
 
+// Build Authorization header from localStorage token
 function authHeader() {
-  const t = localStorage.getItem('userToken');
+  var t = localStorage.getItem('userToken');
   if (!t) return {};
-  const token = String(t).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
-  return { Authorization: `Bearer ${token}`, 'X-Auth-Token': token };
+  var token = String(t).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
+  return { Authorization: 'Bearer ' + token, 'X-Auth-Token': token };
 }
 
+// Safe JSON parse. Never throws; returns {} on invalid JSON.
 async function parseJson(resp) {
   const text = await resp.text();
-  try { return text ? JSON.parse(text) : {}; } catch { throw new Error(text || `HTTP ${resp.status}`); }
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch (e) {
+    return {};
+  }
 }
 
 export async function getAnnouncements() {
-  const resp = await fetch(`${BASE}/api/announcements/list.php`, { headers: { Accept: 'application/json' } });
+  const resp = await fetch(BASE + '/api/announcements/list.php', {
+    headers: { Accept: 'application/json' }
+  });
   const body = await parseJson(resp);
   if (!resp.ok) throw new Error(body.error || 'Failed to load announcements');
   return body; // { announcements: [...] }
@@ -38,69 +47,75 @@ export async function getAnnouncements() {
 
 export async function createAnnouncement(payload) {
   const rawToken = localStorage.getItem('userToken');
-  console.debug('announcements.createAnnouncement: rawToken from localStorage:', rawToken);
-  if (!rawToken) {
-    console.error('announcements.createAnnouncement: No userToken in localStorage');
-    throw new Error('Not signed in');
-  }
+  if (!rawToken) throw new Error('Not signed in');
+
   const token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
-
-  // Validate token format early to provide clearer error messages
   if (!isValidServerToken(token)) {
-    console.error('announcements.createAnnouncement: Invalid token format (not 64-hex).', token);
-    throw new Error('Invalid token. Please sign out and sign in using the backend (not local fallback).');
+    throw new Error('Invalid token. Please sign out and sign in again.');
   }
 
-  const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeader() };
-  const payloadWithToken = { ...payload, token };
-  console.debug('announcements.createAnnouncement → POST', `${BASE}/api/announcements/create.php`, { headers, payload: payloadWithToken });
-  try {
-    const resp = await fetch(`${BASE}/api/announcements/create.php`, { method: 'POST', headers, body: JSON.stringify(payloadWithToken) });
-    const body = await parseJson(resp);
-    if (!resp.ok) {
-      console.error('announcements.createAnnouncement ← error', resp.status, body);
-      throw new Error(body.error || `HTTP ${resp.status}`);
-    }
-    console.debug('announcements.createAnnouncement ← success', body);
-    return body; // { announcement: {...} }
-  } catch (err) {
-    console.error('announcements.createAnnouncement → network/error', err);
-    throw err;
-  }
+  const headers = Object.assign(
+      { 'Content-Type': 'application/json', Accept: 'application/json' },
+      authHeader()
+  );
+  const payloadWithToken = Object.assign({}, payload, { token: token });
+
+  const resp = await fetch(BASE + '/api/announcements/create.php', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(payloadWithToken)
+  });
+  const body = await parseJson(resp);
+  if (!resp.ok) throw new Error(body.error || 'HTTP ' + resp.status);
+  return body; // { announcement: {...} }
 }
 
 export async function updateAnnouncement(payload) {
   const rawToken = localStorage.getItem('userToken');
   if (!rawToken) throw new Error('Not signed in');
-  const token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
 
+  const token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
   if (!isValidServerToken(token)) {
-    console.error('announcements.updateAnnouncement: Invalid token format (not 64-hex).', token);
-    throw new Error('Invalid token. Please sign out and sign in using the backend (not local fallback).');
+    throw new Error('Invalid token. Please sign out and sign in again.');
   }
 
-  const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeader() };
-  const payloadWithToken = { ...payload, token };
-  const resp = await fetch(`${BASE}/api/announcements/update.php`, { method: 'POST', headers, body: JSON.stringify(payloadWithToken) });
+  const headers = Object.assign(
+      { 'Content-Type': 'application/json', Accept: 'application/json' },
+      authHeader()
+  );
+  const payloadWithToken = Object.assign({}, payload, { token: token });
+
+  const resp = await fetch(BASE + '/api/announcements/update.php', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(payloadWithToken)
+  });
   const body = await parseJson(resp);
-  if (!resp.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+  if (!resp.ok) throw new Error(body.error || 'HTTP ' + resp.status);
   return body;
 }
 
 export async function deleteAnnouncement(id) {
   const rawToken = localStorage.getItem('userToken');
   if (!rawToken) throw new Error('Not signed in');
-  const token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
 
+  const token = String(rawToken).replace(/^\s*Bearer\s+/i, '').trim().replace(/^"|"$/g, '');
   if (!isValidServerToken(token)) {
-    console.error('announcements.deleteAnnouncement: Invalid token format (not 64-hex).', token);
-    throw new Error('Invalid token. Please sign out and sign in using the backend (not local fallback).');
+    throw new Error('Invalid token. Please sign out and sign in again.');
   }
 
-  const headers = { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeader() };
-  const payload = { id, token };
-  const resp = await fetch(`${BASE}/api/announcements/delete.php`, { method: 'POST', headers, body: JSON.stringify(payload) });
+  const headers = Object.assign(
+      { 'Content-Type': 'application/json', Accept: 'application/json' },
+      authHeader()
+  );
+  const payload = { id: id, token: token };
+
+  const resp = await fetch(BASE + '/api/announcements/delete.php', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(payload)
+  });
   const body = await parseJson(resp);
-  if (!resp.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+  if (!resp.ok) throw new Error(body.error || 'HTTP ' + resp.status);
   return body;
 }
