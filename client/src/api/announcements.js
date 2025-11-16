@@ -1,6 +1,6 @@
-// client/src/api/announcements.js
-/* jshint esversion: 5 */
-/* jshint -W033 */
+/* jshint esversion: 11 */   // allow ES6+ (export, let/const, etc.)
+/* jshint -W033 */           // silence “Missing ;” noise from old rules
+/* global fetch, localStorage, window, process */
 
 // Base URL: prefer env var, else localhost empty base, else production
 function determineBase() {
