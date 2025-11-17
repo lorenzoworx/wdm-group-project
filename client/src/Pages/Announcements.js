@@ -318,29 +318,6 @@ const Announcements = () => {
                       </button>
 
                       {/* Admin-only debug button to test API from deployed UI (temporary) */}
-                      <button
-                        onClick={async function () {
-                          try {
-                            setDebugMsg('Testing API...');
-                            const payload = {
-                              title: 'Debug test',
-                              description: 'Debug test from UI button',
-                              department: 'CS',
-                              tags: ['debug'],
-                              isPinned: false,
-                            };
-                            const res = await createAnnouncement(payload);
-                            try { setDebugMsg('Debug success: ' + (res && res.announcement && 'id=' + res.announcement.id)); } catch (e) { setDebugMsg('Debug success'); }
-                          } catch (err) {
-                            try { setDebugMsg('Debug error: ' + (err && err.message ? err.message : String(err))); } catch (e) { console.error(err); }
-                            console.error('Debug test API error', err);
-                          }
-                        }}
-                        className="px-3 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors w-full sm:w-auto"
-                        title="Send a test announcement via the API and show result (admin-only)"
-                      >
-                        Debug: Test API
-                      </button>
                     </>
                 )}
 
