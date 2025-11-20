@@ -21,7 +21,6 @@ header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Access-Control-Max-Age: 600');
 header('Content-Type: application/json');
-// Allow cookies/credentials if needed (optional)
 // header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

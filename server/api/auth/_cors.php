@@ -18,7 +18,6 @@ if ($origin) {
   }
 }
 
-// DEBUG: log incoming Origin and request method so you can verify this file runs on remote
 // (remove these debug lines after you confirm behavior)
 if (function_exists('error_log')) {
   error_log(sprintf("_cors.php loaded: origin=%s, method=%s, request_uri=%s", $origin, $_SERVER['REQUEST_METHOD'] ?? '', $_SERVER['REQUEST_URI'] ?? ''));
