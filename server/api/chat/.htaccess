@@ -1,0 +1,16 @@
+# public_html/api/chat/.htaccess
+<IfModule mod_headers.c>
+  # Allow local dev origins (add/remove if you use Vite/ports)
+  Header always set Access-Control-Allow-Origin "http://localhost:3000"
+  Header always set Vary "Origin"
+  Header always set Access-Control-Allow-Methods "POST, OPTIONS"
+  Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+  Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
+# Answer OPTIONS preflight with 204 before PHP runs
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_METHOD} =OPTIONS
+  RewriteRule ^ - [R=204,L]
+</IfModule>

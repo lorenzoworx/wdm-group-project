@@ -12,3 +12,16 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # Optional: force JSON responses to avoid accidental HTML from PHP errors (disabled by default)
 # Header set Content-Type "application/json; charset=utf-8"
+
+# Prevent mod_rewrite in API folder so PHP endpoints are served correctly
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>
+
+# Disable directory listing
+Options -Indexes
+
+# Ensure PHP files are handled by the server (most shared hosts already do this)
+<IfModule mod_mime.c>
+  AddHandler application/x-httpd-php .php
+</IfModule>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/.gitignore">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/.gitignore" />
+              <option name="originalContent" value="node_modules/&#10;.env&#10;&#10;# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.&#10;&#10;# dependencies&#10;/node_modules&#10;/.pnp&#10;.pnp.js&#10;&#10;# testing&#10;/coverage&#10;&#10;# production&#10;/build&#10;&#10;# misc&#10;.DS_Store&#10;.env.local&#10;.env.development.local&#10;.env.test.local&#10;.env.production.local&#10;&#10;npm-debug.log*&#10;yarn-debug.log*&#10;yarn-error.log*&#10;" />
+              <option name="updatedContent" value="node_modules/&#10;.env&#10;&#10;# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.&#10;&#10;# dependencies&#10;/node_modules&#10;/.pnp&#10;.pnp.js&#10;&#10;# testing&#10;/coverage&#10;&#10;# production&#10;/build&#10;&#10;# misc&#10;.DS_Store&#10;.env.local&#10;.env.development.local&#10;.env.test.local&#10;.env.production.local&#10;/server/.env&#10;&#10;npm-debug.log*&#10;yarn-debug.log*&#10;yarn-error.log*" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/server/.env">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/server/.env" />
+              <option name="updatedContent" value="OPENAI_API_KEY=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&#10;# Optional: set model override&#10;OPENAI_MODEL=gpt-4o-mini&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/server/.htaccess">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/server/.htaccess" />
+              <option name="updatedContent" value="# ...existing code...&#10;# Prevent SPA rewrite for API endpoints and protect .env&#10;&lt;IfModule mod_rewrite.c&gt;&#10;  RewriteEngine On&#10;&#10;  # If the request is for the API folder, do not rewrite&#10;  RewriteRule ^api/ - [L]&#10;&#10;  # Serve existing files/directories directly&#10;  RewriteCond %{REQUEST_FILENAME} -f [OR]&#10;  RewriteCond %{REQUEST_FILENAME} -d&#10;  RewriteRule ^ - [L]&#10;&#10;  # Otherwise rewrite to index.html (SPA)&#10;  RewriteRule ^ index.html [L]&#10;&lt;/IfModule&gt;&#10;&#10;# Deny access to .env files for security&#10;&lt;FilesMatch &quot;^\.env$&quot;&gt;&#10;  Require all denied&#10;&lt;/FilesMatch&gt;&#10;# ...existing code...&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/server/api/.htaccess">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/server/api/.htaccess" />
+              <option name="originalContent" value="# Ensure Authorization header is available to PHP (useful for many shared hosts)&#10;# Try both methods as hosts vary in which directive they support.&#10;&#10;# Method 1: pass through Authorization to HTTP_AUTHORIZATION env var&#10;RewriteEngine On&#10;RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]&#10;&#10;# Method 2: Set env if Authorization present (fallback)&#10;&lt;IfModule mod_setenvif.c&gt;&#10;  SetEnvIf Authorization &quot;(.*)&quot; HTTP_AUTHORIZATION=$1&#10;&lt;/IfModule&gt;&#10;&#10;# Optional: force JSON responses to avoid accidental HTML from PHP errors (disabled by default)&#10;# Header set Content-Type &quot;application/json; charset=utf-8&quot;&#10;" />
+              <option name="updatedContent" value="# Ensure Authorization header is available to PHP (useful for many shared hosts)&#10;# Try both methods as hosts vary in which directive they support.&#10;&#10;# Method 1: pass through Authorization to HTTP_AUTHORIZATION env var&#10;RewriteEngine On&#10;RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]&#10;&#10;# Method 2: Set env if Authorization present (fallback)&#10;&lt;IfModule mod_setenvif.c&gt;&#10;  SetEnvIf Authorization &quot;(.*)&quot; HTTP_AUTHORIZATION=$1&#10;&lt;/IfModule&gt;&#10;&#10;# Optional: force JSON responses to avoid accidental HTML from PHP errors (disabled by default)&#10;# Header set Content-Type &quot;application/json; charset=utf-8&quot;&#10;&#10;# Prevent mod_rewrite in API folder so PHP endpoints are served correctly&#10;&lt;IfModule mod_rewrite.c&gt;&#10;  RewriteEngine Off&#10;&lt;/IfModule&gt;&#10;&#10;# Disable directory listing&#10;Options -Indexes&#10;&#10;# Ensure PHP files are handled by the server (most shared hosts already do this)&#10;&lt;IfModule mod_mime.c&gt;&#10;  AddHandler application/x-httpd-php .php&#10;&lt;/IfModule&gt;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
