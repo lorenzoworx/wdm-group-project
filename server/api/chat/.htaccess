@@ -14,4 +14,3 @@
   RewriteCond %{REQUEST_METHOD} =OPTIONS
   RewriteRule ^ - [R=204,L]
 </IfModule>
-

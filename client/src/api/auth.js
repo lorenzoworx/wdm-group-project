@@ -57,3 +57,4 @@ export async function apiLogout(token) {
         headers: { Authorization: `Bearer ${token}` },
     });
 }
+
