@@ -3,16 +3,42 @@ require __DIR__ . '/../db.php';
 require __DIR__ . '/../_cors.php';
 header('Content-Type: application/json');
 
-// Parse input
-$data = json_decode(file_get_contents('php://input'), true) ?? [];
+// Read raw body once
+$rawBody = file_get_contents('php://input');
+// Try JSON decode first
+$decoded = json_decode($rawBody, true);
+if (is_array($decoded)) {
+  $data = $decoded;
+} elseif (!empty($_POST)) {
+  // fallback to PHP-populated $_POST (form-encoded or multipart)
+  $data = $_POST;
+} else {
+  // last-resort: parse query-style body e.g. "email=...&password=..."
+  $parsed = [];
+  parse_str($rawBody, $parsed);
+  $data = is_array($parsed) ? $parsed : [];
+}
 
-// Robustly handle unexpected types (avoid calling trim() on arrays)
+// Extract raw values (may be scalar or array). Avoid calling trim() until we coerce to string.
 $rawEmail = $data['email'] ?? '';
 $rawPass  = $data['password'] ?? '';
 
+// If inputs arrived as arrays (e.g., multiple form fields), coerce to first element
+if (is_array($rawEmail)) {
+  $rawEmail = reset($rawEmail) ?: '';
+}
+if (is_array($rawPass)) {
+  $rawPass = reset($rawPass) ?: '';
+}
+
+// Final safety: ensure scalar
 if (!is_scalar($rawEmail) || !is_scalar($rawPass)) {
-  // Log the raw input to server error log for debugging (do not expose raw content to client)
-  error_log('login.php: invalid input types for email/password: ' . var_export($data, true));
+  // Log limited debug info without exposing passwords
+  $headers = [];
+  foreach (array('HTTP_ORIGIN','CONTENT_TYPE','REQUEST_METHOD') as $k) {
+    if (isset($_SERVER[$k])) $headers[$k] = $_SERVER[$k];
+  }
+  error_log('login.php: invalid input types for email/password. headers=' . json_encode($headers) . ' raw_body_preview=' . substr($rawBody,0,200));
   http_response_code(400);
   echo json_encode(['error' => 'Invalid request data']);
   exit;
