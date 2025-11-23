@@ -1,23 +1,21 @@
-# ...existing code...
-# Prevent SPA rewrite for API endpoints and protect .env
+# public_html/.htaccess   (this lives at the web root)
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteBase /
 
-  # If the request is for the API folder, do not rewrite
+  # 1) never rewrite API requests (let PHP files run)
   RewriteRule ^api/ - [L]
 
-  # Serve existing files/directories directly
+  # 2) serve existing files/folders
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Otherwise rewrite to index.html (SPA)
-  RewriteRule ^ index.html [L]
+  # 3) fallback to the SPA
+  RewriteRule . /index.html [L]
 </IfModule>
 
-# Deny access to .env files for security
+# Do not serve .env files
 <FilesMatch "^\.env$">
   Require all denied
 </FilesMatch>
-# ...existing code...
-
