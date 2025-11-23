@@ -1,21 +1,16 @@
-# public_html/.htaccess   (this lives at the web root)
+# public_html/.htaccess
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # 1) never rewrite API requests (let PHP files run)
+  # Never rewrite /api/* — let Apache/PHP handle real PHP files
   RewriteRule ^api/ - [L]
 
-  # 2) serve existing files/folders
+  # Serve existing files or folders directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # 3) fallback to the SPA
+  # Otherwise send everything to React's index.html
   RewriteRule . /index.html [L]
 </IfModule>
-
-# Do not serve .env files
-<FilesMatch "^\.env$">
-  Require all denied
-</FilesMatch>
