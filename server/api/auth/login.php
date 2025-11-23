@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/_cors.php';
+require __DIR__ . '/../db.php';
+require __DIR__ . '/../_cors.php';
 header('Content-Type: application/json');
 
 // Parse input
