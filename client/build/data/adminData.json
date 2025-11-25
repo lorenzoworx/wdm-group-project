@@ -1,0 +1,5 @@
+{
+  "students": ["Manage Students", "Manage Course", "Manage Permissions", "Reports", "Performance"],
+  "coordinators": ["Manage Coordinator", "Handle Course", "Assign Students", "Reviews"],
+  "qaOfficers": ["Manage QA-Officer", "Assign Course", "Handle Permissions", "Reports", "Performance"]
+}
