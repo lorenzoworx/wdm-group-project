@@ -1,65 +1,66 @@
 <?php
-// server/api/db.php
-// Database connection helper used by API endpoints. Reads credentials from environment
-// variables or from server/.env (one level above server/api/). Returns a $pdo PDO instance.
+// /home/bxp7143/public_html/api/db.php
+// Shared PDO connection helper.
+// Reads credentials from environment variables or /home/bxp7143/public_html/.env
+// Never echo secrets; only log to error_log on failures.
 
-// Do not echo sensitive info. Log errors to server error log.
+if (!defined('JSON_HEADER_SENT')) {
+  // don’t send any headers here; API scripts should send Content-Type themselves
+}
 
-// Helper to read env var or .env fallback
-function env($key, $default = null) {
+function env_val(string $key, $default = null) {
   $v = getenv($key);
-  if ($v !== false && $v !== null && $v !== '') return $v;
+  if ($v !== false && $v !== '') return $v;
 
-  // try server/.env (one level above this file)
+  // fallback: read /public_html/.env (one level above /api)
   static $dotenv = null;
   if ($dotenv === null) {
     $dotenv = [];
     $envPath = __DIR__ . '/../.env';
     if (is_readable($envPath)) {
-      $contents = file_get_contents($envPath);
-      foreach (preg_split('/\r?\n/', $contents) as $line) {
+      foreach (preg_split('/\r?\n/', file_get_contents($envPath)) as $line) {
         $line = trim($line);
-        if ($line === '' || strpos($line, '#') === 0) continue;
-        $parts = explode('=', $line, 2);
-        if (count($parts) === 2) {
-          $k = trim($parts[0]);
-          $val = trim($parts[1], " \t\"'\r\n");
-          $dotenv[$k] = $val;
-        }
+        if ($line === '' || $line[0] === '#') continue;
+        [$k, $val] = array_pad(explode('=', $line, 2), 2, '');
+        $dotenv[trim($k)] = trim($val, " \t\"'\r\n");
       }
     }
   }
-
-  if (isset($dotenv[$key])) return $dotenv[$key];
-  return $default;
+  return $dotenv[$key] ?? $default;
 }
 
-$DB_HOST = env('DB_HOST') ?: env('MYSQL_HOST') ?: 'localhost';
-$DB_NAME = env('DB_NAME') ?: env('MYSQL_DATABASE') ?: env('bxp7143_wdmphase3') ?: null;
-$DB_USER = env('DB_USER') ?: env('MYSQL_USER') ?: env('bxp7143_wdm') ?: null;
-$DB_PASS = env('DB_PASS') ?: env('MYSQL_PASSWORD') ?: env('Montana@123') ?: null;
-$DB_PORT = env('DB_PORT') ?: 3306;
+// ---- Resolve config (use literals only as last-resort defaults) ----
+$DB_HOST = env_val('DB_HOST', 'localhost');
+$DB_PORT = (int) env_val('DB_PORT', 3306);
 
-if (!$DB_NAME || !$DB_USER) {
-  error_log('db.php: missing DB config (DB_NAME or DB_USER not set).');
+// Do NOT hardcode your password in code. Keep it only in .env.
+$DB_NAME = env_val('DB_NAME');            // e.g. bxp7143_wdmphase3
+$DB_USER = env_val('DB_USER');            // e.g. bxp7143_wdm
+$DB_PASS = env_val('DB_PASS');            // your MySQL user password
+
+// (Optional compatibility with other env names if you ever use Docker/.env)
+$DB_NAME = $DB_NAME ?: env_val('MYSQL_DATABASE');
+$DB_USER = $DB_USER ?: env_val('MYSQL_USER');
+$DB_PASS = $DB_PASS ?: env_val('MYSQL_PASSWORD');
+
+if (!$DB_NAME || !$DB_USER || $DB_PASS === null) {
+  error_log('db.php: missing DB config (need DB_NAME, DB_USER, DB_PASS).');
   http_response_code(500);
   echo json_encode(['error' => 'Database configuration missing']);
   exit;
 }
 
-$dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $DB_HOST, (int)$DB_PORT, $DB_NAME);
+$dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $DB_HOST, $DB_PORT, $DB_NAME);
 
 try {
   $pdo = new PDO($dsn, $DB_USER, $DB_PASS, [
-    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES => false,
+    PDO::ATTR_EMULATE_PREPARES   => false,
   ]);
 } catch (PDOException $ex) {
-  // Log the full exception server-side but return a generic error to client
   error_log('db.php connection error: ' . $ex->getMessage());
   http_response_code(500);
   echo json_encode(['error' => 'Database connection failed']);
   exit;
 }
-
