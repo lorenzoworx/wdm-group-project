@@ -36,7 +36,7 @@ function env($key, $default = null) {
 
 $DB_HOST = env('DB_HOST') ?: env('MYSQL_HOST') ?: 'localhost';
 $DB_NAME = env('DB_NAME') ?: env('MYSQL_DATABASE') ?: env('bxp7143_wdmphase3') ?: null;
-$DB_USER = env('DB_USER') ?: env('MYSQL_USER') ?: env('bxp7143_wdmp') ?: null;
+$DB_USER = env('DB_USER') ?: env('MYSQL_USER') ?: env('bxp7143_wdm') ?: null;
 $DB_PASS = env('DB_PASS') ?: env('MYSQL_PASSWORD') ?: env('Montana@123') ?: null;
 $DB_PORT = env('DB_PORT') ?: 3306;
 
