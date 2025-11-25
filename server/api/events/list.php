@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../../../db.php';
+require __DIR__ . '/../db.php';
 require __DIR__ . '/../auth/_cors.php';
 header('Content-Type: application/json');
 
@@ -13,4 +13,3 @@ try {
   echo json_encode(['error' => 'Database error']);
 }
 exit;
-

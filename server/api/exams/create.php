@@ -1,6 +1,5 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/../auth/_cors.php';
+require __DIR__ . '/../_bootstrap.php';
 header('Content-Type: application/json');
 
 $raw = file_get_contents('php://input');

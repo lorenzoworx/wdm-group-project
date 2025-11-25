@@ -12,7 +12,7 @@ $allowed_origins = [
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowed_origins, true)) {
-  header('Access-Control-Allow-Origin: ' . *);
+  header('Access-Control-Allow-Origin: ' . $origin);
 } else {
   // Fallback: allow deployed host (same-origin) — change if you want stricter policy
   header('Access-Control-Allow-Origin: https://bxp7143.uta.cloud');

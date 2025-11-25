@@ -1,16 +1,26 @@
 # public_html/.htaccess
+# SPA routing for the React app; never rewrite /api/
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Never rewrite /api/* — let Apache/PHP handle real PHP files
+  # Do not rewrite /api/* — let Apache/PHP handle it
   RewriteRule ^api/ - [L]
 
-  # Serve existing files or folders directly
+  # Serve existing files/folders directly
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Otherwise send everything to React's index.html
+  # Otherwise route everything to the SPA
   RewriteRule . /index.html [L]
 </IfModule>
+
+# Optional: make index.html non-cacheable so new builds show up immediately
+<FilesMatch "^index\.html$">
+  FileETag None
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </IfModule>
+</FilesMatch>

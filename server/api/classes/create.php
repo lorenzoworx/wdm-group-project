@@ -1,7 +1,7 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/../auth/_cors.php';
-header('Content-Type: application/json');
+global $pdo;
+require __DIR__ . '/../_bootstrap.php';                        // 3) Connect AFTER preflight
+header('Content-Type: application/json');              // 4) JSON by default
 
 /* --- read raw body ONCE so we can reuse it --- */
 $raw = file_get_contents('php://input');

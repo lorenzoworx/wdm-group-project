@@ -3,7 +3,7 @@
 // Public: return list of announcements
 require __DIR__ . '/../auth/_cors.php';
 header('Content-Type: application/json');
-require __DIR__ . '/../../../db.php';
+require __DIR__ . '/../db.php';
 
 try {
   $st = $pdo->query("SELECT id, title, description, department, tags, is_pinned AS isPinned, created_by AS createdBy, created_at AS createdAt FROM announcements ORDER BY created_at DESC");
@@ -29,4 +29,3 @@ try {
   error_log('announcements/list.php DB error: ' . $e->getMessage());
   http_response_code(500); echo json_encode(['error' => 'Database error']);
 }
-

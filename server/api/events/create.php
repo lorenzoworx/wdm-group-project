@@ -5,7 +5,7 @@ require __DIR__ . '/../auth/_cors.php';
 header('Content-Type: application/json');
 
 // 2) DB next
-require __DIR__ . '/../../../db.php';
+require __DIR__ . '/../_bootstrap.php';
 
 // 3) Parse body
 $raw = file_get_contents('php://input');

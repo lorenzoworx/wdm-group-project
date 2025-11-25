@@ -1,9 +1,9 @@
 <?php
 // server/api/announcements/create.php
 // Create a new announcement (admin/instructor)
-require __DIR__ . '/../auth/_cors.php';
+require __DIR__ . '/../_bootstrap.php';
 header('Content-Type: application/json');
-require __DIR__ . '/../../../db.php';
+
 
 $raw = file_get_contents('php://input');
 $in = json_decode($raw, true);

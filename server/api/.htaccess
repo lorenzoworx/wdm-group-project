@@ -1,13 +1,12 @@
 # public_html/api/.htaccess
-
 # Do NOT add AddHandler/AddType here; PHP-FPM handles .php globally on cPanel.
 
-# Make sure React's SPA rewriting is OFF inside /api (we serve real files here)
+# Inside /api we serve real PHP files, so turn off SPA rewrites
 <IfModule mod_rewrite.c>
   RewriteEngine Off
 </IfModule>
 
-# Preserve Authorization header for PHP (Bearer tokens/etc.)
+# Preserve Authorization header (Bearer tokens etc.)
 <IfModule mod_setenvif.c>
   SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 </IfModule>
