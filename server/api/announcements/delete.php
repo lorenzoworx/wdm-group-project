@@ -1,9 +1,9 @@
 <?php
 // server/api/announcements/delete.php
 // Delete an announcement (admin/instructor)
-require __DIR__ . '/../auth/_cors.php';
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
-require __DIR__ . '/../../../db.php';
 
 $raw = file_get_contents('php://input');
 $in = json_decode($raw, true);

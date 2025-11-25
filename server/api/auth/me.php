@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/_cors.php';
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
 $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? '';

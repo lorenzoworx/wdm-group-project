@@ -1,9 +1,9 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/_cors.php';
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
-// _cors.php already handles OPTIONS with 204
+// _bootstrap/_cors already handles OPTIONS with 204
 
 $hdr = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 if (!preg_match('/Bearer\s+([A-Fa-f0-9]{64})$/', $hdr, $m)) {

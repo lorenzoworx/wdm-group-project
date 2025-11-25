@@ -1,6 +1,6 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/../auth/_cors.php';
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
 // Return list of exams. This endpoint is public (no auth required).

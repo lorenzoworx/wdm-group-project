@@ -1,6 +1,7 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/../auth/_cors.php';
+// server/api/exams/update.php
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
 $raw = file_get_contents('php://input');
@@ -14,13 +15,11 @@ $in = $in ?: [];
 
 // auth extraction
 $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (!$auth && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-  $auth = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-}
+if (!$auth && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) $auth = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
 if (!$auth && function_exists('getallheaders')) {
   $all = getallheaders();
-  if (isset($all['Authorization']))       $auth = $all['Authorization'];
-  elseif (isset($all['authorization']))   $auth = $all['authorization'];
+  if (isset($all['Authorization'])) $auth = $all['Authorization'];
+  elseif (isset($all['authorization'])) $auth = $all['authorization'];
 }
 
 $tok = null;
@@ -69,7 +68,7 @@ $exists = $check->fetch();
 if (!$exists) { http_response_code(404); echo json_encode(['error' => 'Exam not found']); exit; }
 
 try {
-  $sql = "UPDATE exams SET title = ?, course_code = ?, description = ?, location = ?, start_time = ?, end_time = ?, duration_minutes = ?, max_students = ?, prerequisites = ?, questions = ? WHERE id = ?";
+  $sql = "UPDATE exams SET title = ?, course_code = ?, description = ?, location = ?, start_time = ?, end_time = ?, duration_minutes = ?, max_students = ?, prerequisites = ?, questions = ?, updated_at = NOW() WHERE id = ?";
   $st = $pdo->prepare($sql);
   $questionsJson = is_string($questions) ? $questions : json_encode($questions);
   $st->execute([$title, $courseCode, $desc, $location, $start, $end, $duration, $maxStudents, $prereq, $questionsJson, $id]);
@@ -86,3 +85,4 @@ $updated['questions'] = $updated['questions'] ? json_decode($updated['questions'
 
 echo json_encode(['ok' => true, 'exam' => $updated]);
 exit;
+

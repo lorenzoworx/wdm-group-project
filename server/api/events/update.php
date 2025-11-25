@@ -1,5 +1,6 @@
 <?php
-require __DIR__ . '/../../../db.php';
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 require __DIR__ . '/../auth/_cors.php';
 header('Content-Type: application/json');
 
@@ -76,4 +77,3 @@ if (!$updated) { http_response_code(500); echo json_encode(['error' => 'Failed t
 
 echo json_encode(['ok' => true, 'event' => $updated]);
 exit;
-

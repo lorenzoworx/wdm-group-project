@@ -1,6 +1,7 @@
 <?php
-require __DIR__ . '/../../../db.php';
-require __DIR__ . '/_cors.php';
+// server/api/auth/register.php
+require_once __DIR__ . '/../_bootstrap.php';
+require __DIR__ . '/../db.php';
 header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true) ?? [];
