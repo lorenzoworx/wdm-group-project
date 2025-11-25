@@ -1,6 +1,36 @@
 <?php
+// Inline CORS handling so preflight returns the correct headers before touching DB
+$allowed = [
+  'https://bxp7143.uta.cloud',
+  'http://localhost:3000','http://127.0.0.1:3000',
+  'http://localhost:3001','http://127.0.0.1:3001',
+  'http://localhost:5173','http://127.0.0.1:5173'
+];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowOrigin = null;
+if ($origin) {
+  if (in_array($origin, $allowed, true)) {
+    $allowOrigin = $origin;
+  } elseif (preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#i', $origin)) {
+    $allowOrigin = $origin;
+  }
+}
+if ($allowOrigin) {
+  header('Access-Control-Allow-Origin: ' . $allowOrigin);
+  header('Vary: Origin');
+  header('Access-Control-Allow-Credentials: true');
+} else {
+  header('Access-Control-Allow-Origin: *');
+}
+header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+header('Access-Control-Max-Age: 600');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
+
+// Now that preflight is handled, include DB helper and continue
 require __DIR__ . '/../db.php';
-require __DIR__ . '/../_cors.php';
+
 header('Content-Type: application/json');
 
 // Read raw body once
