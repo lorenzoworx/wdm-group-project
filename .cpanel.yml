@@ -1,19 +1,23 @@
 ---
 deployment:
   tasks:
+    # Paths
     - export REPO=/home/bxp7143/repositories/wdm-group-project
     - export WEB=/home/bxp7143/public_html
+
+    # Ensure folders exist
+    - /bin/mkdir -p "$WEB/api" "$WEB/resources" "$WEB/static"
 
     # 1) React build -> web root (do not touch /api or /resources)
     - /usr/bin/rsync -a --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
 
-    # 2) PHP API -> /api
+    # 2) PHP API -> /api   (this must include api/db.php, auth/, chat/, etc.)
     - /usr/bin/rsync -a "$REPO/server/api/" "$WEB/api/"
 
-    # 3) (optional) resources folder
+    # 3) Optional resources -> /resources
     - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -a "$REPO/server/resources/" "$WEB/resources/"; fi'
 
-    # 4) ALWAYS write root SPA .htaccess (don’t rely on old copy)
+    # 4) Root SPA .htaccess (ALWAYS write; keeps /api out of SPA)
     - /bin/bash -lc 'printf "%s\n" \
       "<IfModule mod_rewrite.c>" \
       "RewriteEngine On" \
@@ -25,15 +29,17 @@ deployment:
       "RewriteRule . /index.html [L]" \
       "</IfModule>" > "$WEB/.htaccess"'
 
-    # 5) ALWAYS write API .htaccess (no AddHandler!)
+    # 5) API .htaccess (ALWAYS write; pass Authorization, disable listing, block .env)
     - /bin/bash -lc 'printf "%s\n" \
-      "<IfModule mod_rewrite.c>" \
-      "RewriteEngine Off" \
-      "</IfModule>" \
+      "RewriteEngine On" \
+      "RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]" \
       "<IfModule mod_setenvif.c>" \
-      "SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=\$1" \
+      "  SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=\$1" \
       "</IfModule>" \
-      "Options -Indexes" > "$WEB/api/.htaccess"'
+      "Options -Indexes" \
+      "<FilesMatch \"^\\.env$\">" \
+      "  Require all denied" \
+      "</FilesMatch>" > "$WEB/api/.htaccess"'
 
-    # marker
+    # Marker
     - /bin/echo "Deploy OK $(date)"
