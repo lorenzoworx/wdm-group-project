@@ -1,21 +1,23 @@
 ---
 deployment:
   tasks:
-    # paths
     - export REPO=/home/bxp7143/repositories/wdm-group-project
     - export WEB=/home/bxp7143/public_html
 
-    # 1) React build -> web root (do not touch /api or /resources)
-    - /usr/bin/rsync -a --delete --exclude "api/**" --exclude "resources/**" "$REPO/client/build/" "$WEB/"
+    # 1) React build -> web root (keep your excludes)
+    - /usr/bin/rsync -a --delete --exclude 'api/**' --exclude 'resources/**' "$REPO/client/build/" "$WEB/"
 
     # 2) PHP API -> /api
     - /usr/bin/rsync -a "$REPO/server/api/" "$WEB/api/"
 
-    # 3) (optional) resources folder
+    # 3) optional resources
     - /bin/bash -lc 'if [ -d "$REPO/server/resources" ]; then /usr/bin/rsync -a "$REPO/server/resources/" "$WEB/resources/"; fi'
 
-    # 4) Ensure SPA .htaccess exists (no heredoc; use printf)
-    - /bin/bash -lc 'if [ ! -f "$WEB/.htaccess" ]; then printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" > "$WEB/.htaccess"; fi'
+    # 4) Root .htaccess for SPA (always write a fresh copy)
+    - /bin/bash -lc 'printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine On" "RewriteBase /" "RewriteRule ^api/ - [L]" "RewriteCond %{REQUEST_FILENAME} -f [OR]" "RewriteCond %{REQUEST_FILENAME} -d" "RewriteRule ^ - [L]" "RewriteRule . /index.html [L]" "</IfModule>" "" "<FilesMatch ^index\\.html$>" "  FileETag None" "  <IfModule mod_headers.c>" "    Header set Cache-Control \"no-cache, no-store, must-revalidate\"" "  </IfModule>" "</FilesMatch>" > "$WEB/.htaccess"'
 
-    # marker
-    - /bin/echo "Deploy OK $(date)"
+    # 5) API .htaccess (keep rewrites off in /api)
+    - /bin/bash -lc 'printf "%s\n" "<IfModule mod_rewrite.c>" "RewriteEngine Off" "</IfModule>" "Options -Indexes" > "$WEB/api/.htaccess"'
+
+    # 6) Write a deploy marker you can curl later
+    - /bin/bash -lc 'COMMIT=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo n/a); DATEUTC=$(date -u +"%F %T"); printf "Deployed %s UTC\nCommit %s\n" "$DATEUTC" "$COMMIT" > "$WEB/DEPLOY.txt"; chmod 644 "$WEB/DEPLOY.txt"'
